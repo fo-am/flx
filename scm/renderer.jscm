@@ -1,0 +1,202 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ 
+(define (renderer gl)
+  (list
+   gl
+   ()
+   (mat4.identity (mat4.create))
+   (mat4.identity (mat4.create))
+   (mat4.identity (mat4.create))
+   (list (state gl))
+   ()
+   #f
+   ()
+   (scenenode 0 (state gl) 0 '())
+   ()
+   (vector 1 1 1 1)))
+
+(define (renderer-gl r) (list-ref r 0))
+(define (renderer-list r) (list-ref r 1))
+(define (renderer-modify-list r v) (list-replace r 1 v))
+(define (renderer-view r) (list-ref r 2))
+(define (renderer-camera r) (list-ref r 3))
+(define (renderer-modify-camera r v) (list-replace r 3 v))
+(define (renderer-world-to-screen r) (list-ref r 4))
+(define (renderer-stack r) (list-ref r 5))
+(define (renderer-modify-stack r v) (list-replace r 5 v))
+(define (renderer-immediate-prims r) (list-ref r 6))
+(define (renderer-modify-immediate-prims r v) (list-replace r 6 v))
+(define (renderer-hook r) (list-ref r 7))
+(define (renderer-modify-hook r v) (list-replace r 7 v))
+(define (renderer-prefab r) (list-ref r 8))
+(define (renderer-modify-prefab r v) (list-replace r 8 v))
+(define (renderer-scenegraph r) (list-ref r 9))
+(define (renderer-modify-scenegraph r v) (list-replace r 9 v))
+(define (renderer-grab-stack r) (list-ref r 10))
+(define (renderer-modify-grab-stack r v) (list-replace r 10 v))
+(define (renderer-clear-colour r) (list-ref r 11))
+(define (renderer-modify-clear-colour r v) (list-replace r 11 v))
+
+(define (renderer-add r p)
+  (renderer-modify-list r (cons p (renderer-list r))))
+
+(define (renderer-stack-dup r)
+  (renderer-modify-stack
+   r (cons (state-clone (car (renderer-stack r)))
+	   (renderer-stack r))))
+
+(define (renderer-stack-pop r)
+  (renderer-modify-stack
+   r (cdr (renderer-stack r))))
+
+(define (renderer-stack-top r)
+  (car (renderer-stack r)))
+
+(define (renderer-top-tx r)
+  (state-tx (renderer-stack-top r)))
+
+(define (renderer-current-tx r)
+  (let ((grabbed (renderer-grab-stack-top r)))
+    ;; either modify the grabbed primitive or the stack top
+    (if grabbed
+	(state-tx (scenenode-state grabbed))
+	(state-tx (renderer-stack-top r)))))
+
+(define (renderer-modify-current-state r fn)
+  (let ((grabbed (renderer-grab-stack-top r)))
+    ;; either modify the grabbed primitive or the stack top
+    (if grabbed
+	(begin 
+	  (scenenode-modify-state! grabbed (fn (scenenode-state grabbed)))
+	  r) ;; need to return the unchanged renderer
+	(renderer-modify-stack
+	 r (cons (fn (car (renderer-stack r)))
+		 (cdr (renderer-stack r)))))))
+
+(define (renderer-immediate-add r p)
+  (renderer-modify-immediate-prims
+   r (cons
+      ;; state, and a primitive to render in
+      (list (state-clone (renderer-stack-top r)) p)
+      (renderer-immediate-prims r))))))
+
+(define (renderer-immediate-clear r)
+  (renderer-modify-immediate-prims r ()))
+
+(define (renderer-grab-stack-push r id)
+  (let ((node (scenegraph-find (renderer-scenegraph r) id))) 
+    (if node
+	(renderer-modify-grab-stack
+	 r (cons node
+		 (renderer-grab-stack r)))
+	r)))
+    
+(define (renderer-grabbed? r)
+  (> (length (renderer-grab-stack r)) 0))
+
+(define (renderer-grab-stack-pop r)
+  (renderer-modify-grab-stack r (cdr (renderer-grab-stack r))))
+
+(define (renderer-grab-stack-top r)
+  (if (null? (renderer-grab-stack r))
+      #f
+      (car (renderer-grab-stack r))))
+
+(define (renderer-render r t)
+  (let ((gl (renderer-gl r))
+	(hook (renderer-hook r))
+	(view-camera (mat4.create))
+	(camera-pos (vector 0 0 0)))
+    
+    (gl.viewport 0 0 gl.viewportWidth gl.viewportHeight)
+    (gl.clearColor (vx (renderer-clear-colour r)) 
+		   (vy (renderer-clear-colour r))
+		   (vz (renderer-clear-colour r))
+		   (list-ref (renderer-clear-colour r) 3))
+    (gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))
+    (mat4.perspective 45 (/ gl.viewportWidth gl.viewportHeight) 0.1 1000.0
+		      (renderer-view r))
+
+    (gl.enable gl.BLEND)
+    (gl.blendFunc gl.SRC_ALPHA gl.ONE_MINUS_SRC_ALPHA)
+
+    ;; for scene inspection purposes...
+    (mat4.multiply (renderer-view r) (renderer-camera r) (renderer-world-to-screen r))
+    (mat4.multiply (renderer-view r) (renderer-camera r) view-camera)
+    (mat4.multiplyVec3 view-camera (vector 0 0 0) camera-pos)
+
+    (mat4.identity (renderer-top-tx r))
+
+    (when hook (js "try{") (hook) (js "} catch(e) { ") (display e) (js "}"))
+
+    ;; immediate mode
+    (let ((ident (mat4.identity (mat4.create))))
+      (for-each
+       (lambda (p)
+	 (let ((state (car p))
+	       (prim (cadr p)))
+	   (primitive-render prim gl view-camera camera-pos state ident)))
+       (renderer-immediate-prims r))
+      
+      ;; retained mode
+      (scenegraph-render (renderer-scenegraph r) gl view-camera camera-pos ident))
+    (renderer-immediate-clear r)))
+
+(define (interleave-pdata a b c d)
+  (js "var ret=[];")
+  (js "for (var i=0; i<a.length; i+=3) {") 
+  (js "ret.push(a[i]);")
+  (js "ret.push(a[i+1]);")
+  (js "ret.push(a[i+2]);")
+  (js "ret.push(b[i]);")
+  (js "ret.push(b[i+1]);")
+  (js "ret.push(b[i+2]);")
+  (js "ret.push(c[i]);")
+  (js "ret.push(c[i+1]);")
+  (js "ret.push(c[i+2]);")
+  (js "ret.push(d[i]);")
+  (js "ret.push(d[i+1]);")
+  (js "ret.push(d[i+2]);")
+  (js "}")
+  ret)
+
+(define (assemble-polyprim gl vertices normals texcoords)
+  (primitive
+   'polyprim
+   (build-polyprim
+    gl
+    (make-pdata 
+     (list "p" "n" "t" "c") 
+     (/ (length vertices) 4)
+     (interleave-pdata 
+      vertices normals texcoords 
+      (build-list (* (length vertices) 3) (lambda (_) 1))))
+    )))
+
+;; todo - probably replace these with the import code path to simplify things...
+(define (renderer-build-prefab r)
+  (let ((gl (renderer-gl r)))
+    (renderer-modify-prefab
+     r
+     (list
+      (assemble-polyprim gl unit-cube-vertices unit-cube-normals unit-cube-texcoords)
+      (assemble-polyprim gl sphere-vertices sphere-normals sphere-texcoords)
+      (assemble-polyprim gl torus-vertices torus-normals torus-texcoords)
+      ))))
+
+(define (renderer-print r)
+  (scenegraph-print (renderer-scenegraph r)))

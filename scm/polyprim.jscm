@@ -1,0 +1,48 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (polyprim size type vb)
+  (list size type vb))
+
+(define (polyprim-size p) (list-ref p 0))
+(define (polyprim-type p) (list-ref p 1))
+(define (polyprim-pdata p) (list-ref p 2))
+(define (polyprim-modify-pdata p v) (list-replace p 2 v))
+
+(define (build-polyprim gl pdata)
+  (let ((p (polyprim 
+	    (pdata-size-verts pdata) 0 
+	    (pdata-build-vbo gl pdata))))
+    (pdata-update-vbo! gl pdata)
+    p))
+
+(define (build-empty-polyprim gl type size-verts)
+  ;; match load obj for the moment with points, 
+  ;; normals and texturecoords 
+  (build-polyprim 
+   gl (make-pdata 
+       (list "p" "n" "t" "c")
+       size-verts
+       (build-list 
+	(* (* size-verts 4) 3) 
+	(lambda (i) 0)))))
+
+(define (polyprim-update-buffers! gl p)
+  (pdata-update-vbo! gl (polyprim-pdata p)))
+  
+(define (polyprim-render p gl view-camera camera-pos state tx)
+  (pdata-render (polyprim-pdata p) gl view-camera camera-pos state tx))
+

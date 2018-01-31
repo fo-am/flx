@@ -1,0 +1,33 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (primitive type inner)
+  (list type inner))
+
+(define (primitive-type p) (list-ref p 0))
+(define (primitive-inner p) (list-ref p 1))
+
+(define (primitive-render p gl view-camera camera-pos state tx)
+  ;; dispatch
+  (cond 
+   ((eq? (primitive-type p) 'polyprim) 
+    (polyprim-render (primitive-inner p) gl view-camera camera-pos state tx))
+   ((eq? (primitive-type p) 'instanceprim) 
+    (instanceprim-render (primitive-inner p) gl view-camera camera-pos state tx))
+   ((eq? (primitive-type p) 'locatorprim)
+    ;; locator has no primitive (might want to change this for debugging)
+    0)
+   (else (msg "unknown primitive"))))

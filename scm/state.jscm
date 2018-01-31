@@ -1,0 +1,68 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define FLX_HINT_NONE           0x00000000)
+(define FLX_HINT_SOLID          0x00000001)
+(define FLX_HINT_WIRE           0x00000002)
+(define FLX_HINT_NORMAL         0x00000004)
+(define FLX_HINT_POINTS         0x00000008)
+(define FLX_HINT_AALIAS         0x00000010)
+(define FLX_HINT_BOUND          0x00000020)
+(define FLX_HINT_UNLIT          0x00000040)
+(define FLX_HINT_VERTCOLS       0x00000080)
+(define FLX_HINT_ORIGIN         0x00000100)
+(define FLX_HINT_CAST_SHADOW    0x00000200)
+(define FLX_HINT_IGNORE_DEPTH   0x00000400)
+(define FLX_HINT_DEPTH_SORT     0x00000800)
+(define FLX_HINT_LAZY_PARENT    0x00001000)
+(define FLX_HINT_CULL_FACE      0x00002000)
+(define FLX_HINT_CULL_CCW       0x00004000) ;; was something else
+(define FLX_HINT_SPHERE_MAP     0x00008000)
+(define FLX_HINT_FRUSTUM_CULL   0x00010000)
+(define FLX_HINT_NORMALISE      0x00020000)
+(define FLX_HINT_NOBLEND        0x00040000)
+(define FLX_HINT_NOZWRITE       0x00080000)
+
+(define (state gl)
+  (let ((shader (build-shader gl vertex-shader fragment-shader)))
+    (list
+     (mat4.identity (mat4.create))
+     shader
+     (vector 1 1 1)
+     ""
+     FLX_HINT_SOLID
+     0)))
+
+(define (state-tx s) (list-ref s 0))
+(define (state-shader s) (list-ref s 1))
+(define (state-modify-shader s v) (list-replace s 1 v))
+(define (state-colour s) (list-ref s 2))
+(define (state-modify-colour s v) (list-replace s 2 v))
+(define (state-texture s) (list-ref s 3))
+(define (state-modify-texture s v) (list-replace s 3 v))
+(define (state-hints s) (list-ref s 4))
+(define (state-modify-hints s v) (list-replace s 4 v))
+(define (state-parent s) (list-ref s 5))
+(define (state-modify-parent s v) (list-replace s 5 v))
+
+(define (state-clone s)
+  (list
+   (mat4.create (state-tx s))
+   (state-shader s) ;; todo: shader clone
+   (vector-clone (state-colour s))
+   (state-texture s)
+   (state-hints s)
+   (state-parent s)))

@@ -1,0 +1,198 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+ (define vertex-shader
+  "
+precision mediump float;
+varying vec3 P;
+varying vec3 T;
+varying vec3 C;
+varying vec3 N;
+varying vec3 L;
+uniform mat4 ModelViewMatrix;
+uniform mat4 NormalMatrix;
+uniform vec3 CameraPos;
+attribute vec3 p;
+attribute vec3 t;
+attribute vec3 n;
+attribute vec3 c;
+
+void main()
+{
+    P = p.xyz;
+    T = t;
+    C = c;
+    L = vec3(0,1,0); /* vec3(ModelViewMatrix*vec4((vec3(0,10,0)-p),1)); */
+    N = normalize(vec3(NormalMatrix*vec4(n,1)));	
+    gl_Position = ModelViewMatrix * vec4(p,1);
+}")
+
+(define fragment-shader
+  "
+precision mediump float;
+uniform sampler2D texture;
+uniform vec3 DiffuseColour;
+varying vec3 P;
+varying vec3 T;
+varying vec3 C;
+varying vec3 N;
+varying vec3 L;
+
+void main() {
+    vec3 l = normalize(L);
+    vec3 n = normalize(N);
+    float diffuse = dot(vec3(0,1,0),n);
+
+    if(texture2D(texture, vec2(T.s, T.t)).a == 0.0) {
+        discard;
+    }
+
+    gl_FragColor = vec4(texture2D(texture, vec2(T.s, T.t)).xyz *
+                            DiffuseColour*C*diffuse, 
+                        texture2D(texture, vec2(T.s, T.t)).a);
+}
+")
+
+
+
+
+
+
+
+(define fragment-shader-spec
+  "
+precision mediump float;
+uniform sampler2D texture;
+uniform vec3 DiffuseColour;
+varying vec3 P;
+varying vec3 T;
+varying vec3 N;
+varying vec3 L;
+
+void main() {
+    vec3 l = normalize(L);
+    vec3 n = normalize(N);
+    float diffuse = min(1.0,dot(vec3(0.8,0.8,0),n));
+    float diffuse2 = max(0.1,dot(vec3(0,1,0),n));
+    gl_FragColor = vec4(texture2D(texture, vec2(T.s, T.t)).xyz *
+                                (DiffuseColour*diffuse + 
+				vec3(1,0.5,0.2)*diffuse2*0.1), 1.0);
+				
+}
+")
+
+;;                        (vec3(0,0,1) + 
+;;                        step(1.0,length(P))*vec3(0,0.5,0)+
+;;                        step(1.005,length(P))*vec3(0.5,0,0)+
+;;                        step(1.02,length(P))*vec3(1,1,1))*0.75
+
+
+
+ (define vertex-organism
+  "
+precision mediump float;
+varying vec3 P;
+varying vec3 T;
+varying vec3 N;
+varying vec3 L;
+uniform mat4 ModelViewMatrix;
+uniform mat4 NormalMatrix;
+uniform vec3 CameraPos;
+attribute vec3 p;
+attribute vec3 t;
+attribute vec3 n;
+
+void main()
+{
+    P = p.xyz;
+    T = t;
+    L = vec3(0,1,0); /* vec3(ModelViewMatrix*vec4((vec3(0,10,0)-p),1)); */
+    N = normalize(vec3(NormalMatrix*vec4(n,1)));	
+    gl_Position = ModelViewMatrix * vec4(p,1);
+}")
+
+(define fragment-organism
+  "
+precision mediump float;
+uniform sampler2D texture;
+uniform vec3 DiffuseColour;
+varying vec3 P;
+varying vec3 T;
+varying vec3 N;
+varying vec3 L;
+
+void main() {
+
+    vec3 l = normalize(L);
+    vec3 n = normalize(N);
+    float diffuse = clamp(dot(vec3(0,1,0),n),0.5,1.0); 
+
+    gl_FragColor = vec4(texture2D(texture, vec2(T.s, T.t)).xyz *
+                            DiffuseColour*diffuse, 1.0);
+
+/*    gl_FragColor = vec4(texture2D(texture, vec2(T.s, T.t)).xyz *
+                            DiffuseColour, 1.0);
+*/
+}
+")
+
+
+ (define vertex-disc
+  "
+precision mediump float;
+varying vec3 P;
+varying vec3 T;
+varying vec3 N;
+varying vec3 L;
+varying vec3 C;
+uniform mat4 ModelViewMatrix;
+uniform mat4 NormalMatrix;
+uniform vec3 CameraPos;
+attribute vec3 p;
+attribute vec3 t;
+attribute vec3 n;
+attribute vec3 c;
+
+void main()
+{
+    P = p.xyz;
+    T = t;
+    C = c;
+    L = vec3(0,1,0); /* vec3(ModelViewMatrix*vec4((vec3(0,10,0)-p),1)); */
+    N = normalize(vec3(NormalMatrix*vec4(n,1)));	
+    gl_Position = ModelViewMatrix * vec4(p,1);
+}")
+
+(define fragment-disc
+  "
+precision mediump float;
+uniform sampler2D texture;
+uniform vec3 DiffuseColour;
+varying vec3 P;
+varying vec3 T;
+varying vec3 N;
+varying vec3 L;
+varying vec3 C;
+
+void main() {
+    vec3 l = normalize(L);
+    vec3 n = normalize(N);
+    float diffuse = min(1.0,dot(vec3(0,1,0),n)+1.5);
+    gl_FragColor = vec4(texture2D(texture, vec2(T.s, T.t)).xyz *
+                            C*DiffuseColour*diffuse, 1.0);
+
+}
+")

@@ -1,0 +1,125 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2017 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (scenenode id state primitive children) (list id state primitive children)))
+(define (scenenode-id p) (list-ref p 0))
+(define (scenenode-state p) (list-ref p 1))
+(define (scenenode-modify-state! p v) (set! p (list-replace p 1 v)))
+(define (scenenode-primitive p)  (list-ref p 2))
+(define (scenenode-children p)  (list-ref p 3))
+(define (scenenode-modify-children p v)  (list-replace p 3 v))
+;;(define (scenenode-modify-add-child p child) (list-replace p 3 (cons child (scenenode-children p))))
+
+(define (scenenode-print p)
+  (msg (+ (scenenode-id p) " " (state-tx (scenenode-state p)))))
+
+;; order children by id
+(define (scenenode-modify-add-child p child)
+  (define (_ l v)
+    (cond
+     ((null? l) (list v))
+     ((< (scenenode-id  v) (scenenode-id (car l))) (cons v l))
+     (else (cons (car l) (_ (cdr l) v)))))
+  (list-replace p 3 (_ (scenenode-children p) child)))
+
+;; binary search
+(define (scenenode-search-child l id)
+  (define (_ start end)
+    (cond
+     ;; no children
+     ((null? l) #f)
+     (else
+      (let ((mid (trunc (+ start (/ (- end start) 2)))))
+	(cond
+	 ;; not found
+	 ((< (- end start) 2) #f)
+	 ;; found
+	 ((eq? id (car (list-ref l mid))) (list-ref l mid))
+	 ;; search down
+	 ((> (car (list-ref l mid)) id)
+	  (_ start mid))
+	 ;; search up
+	 (else
+	  (_ mid end)))))))
+  (_ 0 (length l)))
+
+(define (scenegraph-find sn id)
+  (cond
+   ((eq? (scenenode-id sn) id) sn)
+   (else 
+    (let ((result (scenenode-search-child (scenenode-children sn) id)))
+      (if result result
+	  (foldl
+	   (lambda (sn r)
+	     (if r r (scenegraph-find sn id)))
+	   #f
+	   (scenenode-children sn)))))))
+
+(define (scenegraph-remove sn id)
+  (scenenode-modify-children
+   sn
+   (filter (lambda (sn)
+	     (not (eq? (scenenode-id sn) id)))
+	   (map
+	    (lambda (sn)
+	      (scenegraph-remove sn id))
+	    (scenenode-children sn)))))
+
+ (define (scenegraph-add sn parent-id node)
+  (cond
+   ((eq? (scenenode-id sn) parent-id) 
+    (scenenode-modify-add-child sn node))
+   (else 
+    (scenenode-modify-children
+     sn
+     (map
+      (lambda (sn)
+	(scenegraph-add sn parent-id node))
+      (scenenode-children sn))))))
+
+(define (scenegraph-render sn gl view-camera camera-pos tx)
+  (when (not (zero? (scenenode-primitive sn)))
+	(let ((hints (state-hints (scenenode-state sn))))
+	  ;; hints that affect all types of primitive
+	  (if (bitwise-and hints FLX_HINT_NOZWRITE)
+	      (gl.depthMask false)
+	      (gl.depthMask true))
+	  (if (bitwise-and hints FLX_HINT_CULL_FACE)
+	      (gl.enable gl.CULL_FACE)
+	      (gl.disable gl.CULL_FACE))
+	  (if (bitwise-and hints FLX_HINT_CULL_CCW) 
+	      (gl.frontFace gl.CW)
+	      (gl.frontFace gl.CCW))
+	  (if (bitwise-and hints FLX_HINT_IGNORE_DEPTH) 
+	      (gl.disable gl.DEPTH_TEST)
+	      (gl.enable gl.DEPTH_TEST))
+	  (primitive-render 
+	   (scenenode-primitive sn) gl view-camera camera-pos 
+	   (scenenode-state sn)
+	   tx)))
+  ;;(msg (+ "len:" (length (scenenode-children sn))))
+  (for-each 
+   (lambda (child)
+     (scenegraph-render child gl view-camera camera-pos
+			(state-tx (scenenode-state sn))))
+   (scenenode-children sn)))
+
+(define (scenegraph-print sn depth)
+  (scenenode-print sn)
+  (for-each 
+   (lambda (child)
+     (scenegraph-print child (+ depth 1)))
+   (scenenode-children sn)))

@@ -1,0 +1,134 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;; pdata objects store the data so they can be manipulated, then
+;; re-uploaded using the GL VBO handle.
+;; todo:
+;; - choice of separate or interleaved (faster when modifying one type)
+;; - ability to delete CPU copies
+
+(define (make-pdata types size-verts interleaved-data)
+  (list types size-verts interleaved-data 0))
+
+(define (pdata-types v) (list-ref v 0))
+(define (pdata-size-verts v) (list-ref v 1))
+(define (pdata-interleaved-data v) (list-ref v 2))
+(define (pdata-modify-interleaved-data! p v) (set! p (list-replace p 2 v)))
+(define (pdata-vbo v) (list-ref v 3))
+
+(define (pdata-build-vbo gl v)
+  ;;(msg (+ "building vbo of size " (length (pdata-interleaved-data v)) " floats"))
+  (let ((vb (gl.createBuffer)))
+    (gl.bindBuffer gl.ARRAY_BUFFER vb)
+    (gl.bufferData gl.ARRAY_BUFFER (new Float32Array (length (pdata-interleaved-data v))) gl.STATIC_DRAW)
+    (list-replace v 3 vb)))
+
+(define (pdata-update-vbo! gl v)
+  (gl.bindBuffer gl.ARRAY_BUFFER (pdata-vbo v))
+  (gl.bufferData gl.ARRAY_BUFFER (new Float32Array (pdata-interleaved-data v)) gl.STATIC_DRAW))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (stride-map fn interleaved stride offset)
+  (js "for (var stride_map_i=offset; stride_map_i<interleaved.length; stride_map_i+=stride) {")
+  (js "var stride_map_v=fn([interleaved[stride_map_i],interleaved[stride_map_i+1],interleaved[stride_map_i+2]]);")
+  (js "interleaved[stride_map_i]=stride_map_v[0];")
+  (js "interleaved[stride_map_i+1]=stride_map_v[1];")
+  (js "interleaved[stride_map_i+2]=stride_map_v[2];")
+  (js "};")
+  interleaved)
+
+(define (pdata-offset name)
+  ;; hmm ok for now but FIX THIS...
+  (cond ((eq? name "p") 0)
+	((eq? name "n") 3)
+	((eq? name "t") 6)
+	(else 9)))
+
+(define (pdata-internal-map! gl v fn name)
+  (let ((offset (pdata-offset name)))  
+    (let ((stride (* (length (pdata-types v)) 3))) 
+      (pdata-modify-interleaved-data!
+       v (stride-map fn (pdata-interleaved-data v) stride offset))
+      ;; might want to do this separately as it's potentially slow
+      (pdata-update-vbo! gl v))))
+
+(define (pdata-internal-set! gl pdata name pos value)
+  (let ((offset (pdata-offset name)))  
+    (let ((stride (* (length (pdata-types pdata)) 3)))
+      (when (> (+ offset (* pos stride)) 
+	       (length (pdata-interleaved-data pdata))) 
+	    (msg (+ offset (* pos stride)))
+	    (msg (length (pdata-interleaved-data pdata)))
+	    (msg "WOT")
+	    (welw)
+	    )
+      (js "pdata_interleaved_data(pdata)[offset+pos*stride]=value[0];")
+      (js "pdata_interleaved_data(pdata)[offset+pos*stride+1]=value[1];")
+      (js "pdata_interleaved_data(pdata)[offset+pos*stride+2]=value[2];"))))
+
+(define (pdata-internal-ref gl pdata name pos)
+  (let ((offset (pdata-offset name)))  
+    (let ((stride (* (length (pdata-types pdata)) 3))) 
+      (vector
+       (js "pdata_interleaved_data(pdata)[offset+pos*stride]")
+       (js "pdata_interleaved_data(pdata)[offset+pos*stride+1]")
+       (js "pdata_interleaved_data(pdata)[offset+pos*stride+2]")))))
+
+;; stick em out here to avoid allocation all the time
+(define model-view (mat4.create))
+(define local (mat4.create))
+(define normal (mat4.create))
+
+(define (pdata-render pdata gl view-camera camera-pos state tx)
+  (let ((shader (state-shader state))
+	(texture (state-texture state))
+	(colour (state-colour state))
+	(hints (state-hints state)))
+
+    (mat4.multiply tx (state-tx state) local)
+    (mat4.multiply view-camera local model-view)
+    (mat4.toRotationMat local normal)
+    
+    (gl.useProgram shader)
+    
+    (gl.bindBuffer gl.ARRAY_BUFFER (pdata-vbo pdata))
+
+    ;; 12 bytes for 3 floats...
+    (gl.vertexAttribPointer 
+     shader.vertexPositionAttribute 3 gl.FLOAT false 48 0)
+    (gl.vertexAttribPointer 
+     shader.vertexNormalAttribute 3 gl.FLOAT false 48 12)
+    (gl.vertexAttribPointer 
+     shader.vertexTextureAttribute 3 gl.FLOAT false 48 24)
+    (gl.vertexAttribPointer 
+     shader.vertexColorAttribute 3 gl.FLOAT false 48 36)
+
+    (if (eq? texture "")
+	(bind-texture gl shader "white.png")
+	(bind-texture gl shader texture))
+    
+    (gl.uniformMatrix4fv shader.ModelViewMatrixUniform false model-view)
+    (gl.uniformMatrix4fv shader.NormalMatrixUniform false normal)
+
+    (gl.uniform3fv shader.DiffuseColour colour)
+    (gl.uniform3fv shader.CameraPos camera-pos)
+
+    (when (bitwise-and hints FLX_HINT_SOLID)
+	  (gl.drawArrays gl.TRIANGLES 0 (pdata-size-verts pdata))) 
+    (when (bitwise-and hints FLX_HINT_WIRE)
+	  (gl.drawArrays gl.LINE_STRIP 0 (pdata-size-verts pdata)))
+    ))
