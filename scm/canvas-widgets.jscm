@@ -1,0 +1,350 @@
+;; -*- mode: scheme; -*-
+;; Viruscraft Copyright (C) 2018 FoAM Kernow
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (inside-box? px py x y w h)
+  (and (and (> px x) (< px (+ x w)))
+       (and (> py y) (< py (+ y h)))))
+
+
+(define (draw-circle x y radius)
+  (ctx.beginPath)
+  (ctx.arc x y radius 0 (* Math.PI 2))
+  (ctx.stroke))
+
+(define (draw-line x y x2 y2)
+  (ctx.beginPath)
+  (ctx.moveTo x y)
+  (ctx.lineTo x2 y2)
+  (ctx.stroke))
+
+;; unholy mix of 3d and 2d
+(define (make-mesh-button pos mesh size text fn) 
+  (let ((prim (with-state
+	       (translate pos)
+	       (load-primitive mesh))))
+    (list pos text size fn 
+	  prim (primitive-screen-pos prim))))
+
+(define (mesh-button-pos b) (list-ref b 0))
+(define (mesh-button-text b) (list-ref b 1))
+(define (mesh-button-size b) (list-ref b 2))
+(define (mesh-button-fn b) (list-ref b 3))
+(define (mesh-button-prim b) (list-ref b 4))
+(define (mesh-button-canvas-pos b) (list-ref b 5))
+
+(define (mesh-button-update b m)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (- (vx (mesh-button-canvas-pos b)) (mesh-button-size b)) 
+     (- (vy (mesh-button-canvas-pos b)) (mesh-button-size b))
+     (+ (vx (mesh-button-canvas-pos b)) (mesh-button-size b)) 
+     (+ (vy (mesh-button-canvas-pos b)) (mesh-button-size b)))
+    (if canvas-mouse-clicked
+	(let ((fn (mesh-button-fn b))) 
+	  (set! canvas-event-occurred #t)
+	  (set! canvas-mouse-clicked #f)
+	  (fn m))
+	(with-primitive 
+	 (mesh-button-prim b)
+	 (colour (rndvec))
+	 m)))
+   (else m)))
+
+(define (mesh-button-render! b)
+  (let ((m (ctx.measureText (mesh-button-text b))))
+    (ctx.fillText 
+     (mesh-button-text b) 
+     (- (vx (mesh-button-canvas-pos b)) (/ m.width 2)) 
+     (+ (vy (mesh-button-canvas-pos b)) 20)))
+  (with-primitive 
+   (mesh-button-prim b)
+   (rotate (vector 1 1 0.5))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-image-button x y image-name text fn) 
+  (let ((image (find-image image-name image-lib)))
+    (list x y image text fn (/ image.width 2) (/ image.height 2))))
+
+(define (image-button-x b) (list-ref b 0))
+(define (image-button-y b) (list-ref b 1))
+(define (image-button-image b) (list-ref b 2))
+(define (image-button-text b) (list-ref b 3))
+(define (image-button-fn b) (list-ref b 4))
+(define (image-button-width b) (list-ref b 5))
+(define (image-button-height b) (list-ref b 6))
+
+(define (image-button-update b m)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (- (image-button-x b) (image-button-width b)) 
+     (- (image-button-y b) (image-button-height b))
+     (* (image-button-width b) 2) 
+     (* (image-button-height b) 2))
+    (if canvas-mouse-clicked
+	(let ((fn (image-button-fn b))) 
+	  (set! canvas-event-occurred #t)
+	  (set! canvas-mouse-clicked #f)
+	  (fn m))
+	m))
+   (else m)))
+  
+(define (image-button-render! b)
+  (ctx.save)
+  (ctx.translate 
+   (image-button-x b)
+   (image-button-y b))
+  (ctx.translate 
+   (- (image-button-width b))
+   (- (image-button-height b)))
+  (ctx.drawImage (image-button-image b) 0 0)
+  (ctx.restore)
+  
+  (let ((m (ctx.measureText (image-button-text b))))
+    (ctx.fillText 
+     (image-button-text b) 
+     (- (image-button-x b) (/ m.width 2)) 
+     (+ (image-button-y b) 10))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; an two images, one that animates when clicked
+
+(define (make-animated-button x y image-name image2-name fn) 
+  (let ((image (find-image image-name image-lib))
+	(image2 (find-image image2-name image-lib)))
+    (list x y image image2 fn (/ image.width 2) (/ image.height 2) -1 "opening")))
+
+(define (animated-button-x b) (list-ref b 0))
+(define (animated-button-y b) (list-ref b 1))
+(define (animated-button-image b) (list-ref b 2))
+(define (animated-button-image2 b) (list-ref b 3))
+(define (animated-button-fn b) (list-ref b 4))
+(define (animated-button-width b) (list-ref b 5))
+(define (animated-button-height b) (list-ref b 6))
+(define (animated-button-time b) (list-ref b 7))
+(define (animated-button-modify-time b v) (list-replace b 7 v))
+(define (animated-button-state b) (list-ref b 8))
+(define (animated-button-modify-state b v) (list-replace b 8 v))
+
+(define (animated-button-update b m)
+  (set! b (animated-button-modify-time 
+	   b (+ (animated-button-time b) 2)))  
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (- (animated-button-x b) (animated-button-width b)) 
+     (- (animated-button-y b) (animated-button-height b))
+     (* (animated-button-width b) 2) 
+     (* (animated-button-height b) 2))
+    (if canvas-mouse-clicked
+	(let ((fn (animated-button-fn b))) 
+	  (set! canvas-event-occurred #t)
+	  (set! canvas-mouse-clicked #f)
+	  (fn m))
+	m))
+   (else m)))
+
+(define (animated-button-render! b)
+  (ctx.save)
+  (ctx.translate 
+   (animated-button-x b)
+   (animated-button-y b))
+  (ctx.translate 
+   (- (animated-button-width b))
+   (- (animated-button-height b)))
+  (ctx.drawImage (animated-button-image b) 0 0)
+  (ctx.drawImage (animated-button-image2 b) 0 
+		 (if (eq? (animated-button-state b) "filling")
+		     (- (min 75 (animated-button-time b)) 75)
+		     (- (min 75 (animated-button-time b)))))
+  (ctx.restore))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-textbox x y style gap just text) (list x y style gap just text))
+
+(define (textbox-x t) (list-ref t 0))
+(define (textbox-y t) (list-ref t 1))
+(define (textbox-style t) (list-ref t 2))
+(define (textbox-gap t) (list-ref t 3))
+(define (textbox-just t) (list-ref t 4))
+(define (textbox-text t) (list-ref t 5))
+
+(define (textbox-render! s)
+  (set! ctx.font (textbox-style s))
+  (index-for-each
+   (lambda (i text)
+     (let ((m (ctx.measureText text)))
+       (ctx.fillText 
+	text
+	(- (textbox-x s) (/ m.width 2)) 
+	(+ (textbox-y s) (* i (textbox-gap s))))))
+   (textbox-text s))
+  (canvas-init-defaults))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-slider x y w p fn) (list x y w p fn))
+(define (slider-x s) (list-ref s 0))
+(define (slider-y s) (list-ref s 1))
+(define (slider-w s) (list-ref s 2))
+(define (slider-p s) (list-ref s 3))
+(define (slider-update-p s v) (list-replace s 3 v))
+(define (slider-fn s) (list-ref s 4))
+
+(define (slider-update s)
+  (cond
+   ((and (or canvas-is-dragging (or (eq? canvas-mouse-state "down") (eq? canvas-mouse-state "clicked")))
+	 (inside-box?
+	  canvas-mouse-x canvas-mouse-y
+	  (slider-x s) (- (slider-y s) 20)
+	  (slider-w s) 40))
+    (set! canvas-event-occurred #t)
+    (let ((fn (slider-fn s))) (fn (- canvas-mouse-x (slider-x s))))
+    (slider-update-p s (- canvas-mouse-x (slider-x s))))
+   (else s)))
+
+(define (slider-render! s)
+  (ctx.moveTo (slider-x s) (slider-y s))
+  (ctx.lineTo (+ (slider-x s) (slider-w s)) (slider-y s))
+  (ctx.stroke)
+  (ctx.beginPath)
+  (ctx.moveTo (+ (slider-x s) (slider-p s)) (slider-y s))
+  (ctx.arc (+ (slider-x s) (slider-p s)) (slider-y s) 15 0 (* Math.PI 2))
+  (ctx.closePath)
+  (ctx.fill))
+
+(define (make-window x y w h) (list x y w h))
+
+(define (window-x w) (list-ref w 0))
+(define (window-y w) (list-ref w 1))
+(define (window-w w) (list-ref w 2))
+(define (window-h w) (list-ref w 3))
+
+(define (window-render! w)
+  (let ((grd (ctx.createLinearGradient 
+	      (window-x w) (window-y w) 
+	      (+ (window-x w) (window-w w)) 0)))
+    (set! ctx.globalAlpha 0.2)
+    (grd.addColorStop 0 "#00ff00")
+    (grd.addColorStop 1 "#ffffff")
+    (set! ctx.fillStyle grd)
+    (ctx.fillRect (window-x w) (window-y w) 
+		  (window-w w) (window-h w))
+    (set! ctx.globalAlpha 1)
+    (canvas-init-defaults)))
+
+(define (clamp l u v)
+  (if (< v l) l (if (> v u) u v)))
+
+(define (make-progress-bar x y w h text style p) (list x y w h text style p))
+
+(define (progress-bar-x w) (list-ref w 0))
+(define (progress-bar-y w) (list-ref w 1))
+(define (progress-bar-w w) (list-ref w 2))
+(define (progress-bar-h w) (list-ref w 3))
+(define (progress-bar-text w) (list-ref w 4))
+(define (progress-bar-style w) (list-ref w 5))
+(define (progress-bar-p w) (list-ref w 6))
+(define (progress-bar-update-p w v) (list-replace w 6 v))
+
+(define (progress-bar-render! w)
+  (let ((grd (ctx.createLinearGradient 
+	      (progress-bar-x w) (progress-bar-y w) 
+	      (+ (progress-bar-x w) (progress-bar-w w)) 0)))
+    (set! ctx.strokeStyle "#000")
+    (ctx.strokeRect (progress-bar-x w) (progress-bar-y w) 
+		    (progress-bar-w w) (progress-bar-h w))
+    (set! ctx.globalAlpha 0.5)
+    (grd.addColorStop 0 "#00ff00")
+    (grd.addColorStop 1 "#ffffff")
+    (set! ctx.fillStyle grd)
+    (ctx.fillRect (progress-bar-x w) (progress-bar-y w) 
+		  (* (progress-bar-w w)
+		     (/ (clamp 0 100 (progress-bar-p w)) 100))
+		  (progress-bar-h w))
+    (set! ctx.globalAlpha 1)
+    (set! ctx.font (progress-bar-style w))
+    (set! ctx.fillStyle "#000")
+    (let ((txt (string-append (progress-bar-text w) " " 
+			      (clamp 0 100 (floor (progress-bar-p w))) "%")))
+      (let ((m (ctx.measureText txt)))
+	(ctx.fillText 
+	 txt 
+	 (- (+ (progress-bar-x w) (/ (progress-bar-w w) 2)) (/ m.width 2)) 
+	 (+ (progress-bar-y w) 25))))
+    
+    (canvas-init-defaults)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-popup textbox type time) (list textbox type time))
+(define (popup-textbox p) (list-ref p 0))
+(define (popup-type p) (list-ref p 1))
+(define (popup-time p) (list-ref p 2))
+
+(define popups-list '())
+
+(define (clear-popups!)
+  (set! popups-list '()))
+
+(define (fire-popup! type text-list)
+  (let ((x (if (eq? type "bad") (/ screen-width 2) 300))
+	(y (if (eq? type "bad") 300 500)))
+    (set! popups-list (cons (make-popup 
+			     (make-textbox
+			      x y 
+			      (if (eq? type "bad") 
+				  "30pt Dosis" 
+				  "20pt Dosis") 
+			      55 "centre" 
+			      text-list)
+			     type
+			     (time)) 
+			    popups-list))))
+
+(define (render-popup! p)
+  (let ((tb (popup-textbox p)))
+    (let ((x (- (/ screen-width 2) 400)) 
+	  (y (- (textbox-y tb) 50))
+	  (w 800) 
+	  (h 130))
+      (let ((grd (ctx.createLinearGradient x y (+ x w) (+ y h))))
+	(if (eq? (popup-type p) "bad")
+	    (grd.addColorStop 0 "#ff0000")
+	    (grd.addColorStop 0 "#359935"))
+	(grd.addColorStop 1 "#ffffff")
+	(set! ctx.strokeStyle "#000")
+	(ctx.strokeRect x y w h)
+	(set! ctx.globalAlpha 0.5)
+	(set! ctx.fillStyle grd)
+	(ctx.fillRect x y w h)
+	(set! ctx.globalAlpha 1)
+	(canvas-init-defaults)
+	(textbox-render! tb)))))
+
+(define popup-lifespan 3)
+
+(define (render-popups!)
+  (when (not (null? popups-list))
+	(render-popup! (car popups-list))
+	(when (> (- (time) (popup-time (car popups-list))) popup-lifespan)
+	      (set! popups-list (cdr popups-list)))))
+
+

@@ -1,0 +1,49 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2018 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define shader-cache ())
+(define shaders-load-outstanding 0)
+(define shaders-total-load 0)
+
+(define (shaders-loaded?)
+  (eq? shaders-load-outstanding 0))
+
+(define (internal-load-shader-cache gl name attrib-names vert frag)
+  (set! shaders-load-outstanding (+ shaders-load-outstanding 1))
+  (set! shaders-total-load (+ shaders-total-load 1))
+  (load-resource-txt 
+   vert
+   (lambda (vert-code)
+     (load-resource-txt
+      frag
+      (lambda (frag-code)		
+	(set! shaders-load-outstanding (- shaders-load-outstanding 1))
+	(shader-cache-add gl name attrib-names vert-code frag-code))))))
+
+(define (shader-cache-add gl name attrib-names vert-code frag-code)
+  (set! shader-cache 
+	(cons 
+	 (list name (build-shader gl attrib-names vert-code frag-code))
+	 shader-cache)))
+
+(define (shader-cache-search name)
+  (let ((shader (assoc name shader-cache)))
+    (cond 
+     (shader (cadr shader)) ;; deep copy!?
+     (else 
+      (msg (+ "shader not loaded into cache in preload: " name))
+      (wewe)))))
+	

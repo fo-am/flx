@@ -1,0 +1,58 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (point2-in-triangle? point a b c)
+  (define (sign2 a b c)
+    (- (* (- (vx a) (vx c)) 
+	  (- (vy b) (vy c))) 
+       (* (- (vx b) (vx c)) 
+	  (- (vy a) (vy c)))))
+  (let ((b1 (< (sign2 point a b) 0))
+	(b2 (< (sign2 point b c) 0))
+	(b3 (< (sign2 point c a) 0)))
+    (and (eq? b1 b2) (eq? b2 b3))))
+
+(define (point3->barycentric point a b c)
+  (let ((v0 (vsub b a))
+	(v1 (vsub c a))
+	(v2 (vsub point a)))
+    (let ((d00 (vdot v0 v0))
+	  (d01 (vdot v0 v1))
+	  (d11 (vdot v1 v1))
+	  (d20 (vdot v2 v0))
+	  (d21 (vdot v2 v1)))
+      (let ((denom (- (* d00 d11) (* d01 d01))))
+	(let ((v (/ (- (* d11 d20) (* d01 d21)) denom))
+	      (w (/ (- (* d00 d21) (* d01 d20)) denom)))
+	  (list v w (- 1 v w)))))))
+
+(define (barycentric->trilinear point a b c)
+  (vector
+   (/ (vx point) (vdist b c))
+   (/ (vy point) (vdist c a))
+   (/ (vz point) (vdist a b))))
+
+(define (geometry-unit-test)
+  (assert (point2-in-triangle? (vector 0.5 0.5 0) (vector 0 0 0) (vector 3 0 0) (vector 0 3 0)) "point in triangle 1")
+  (assert (not 
+	   (point2-in-triangle? (vector 5 0.5 0) (vector 0 0 0) (vector 3 0 0) (vector 0 3 0))) "point in triangle 2")
+  (assert (veq? (vector 0.3333333333333333 -0.3333333333333333 1)
+		(point3->barycentric (vector 0 0 0) (vector 1 0 0) (vector 0 3 0) (vector 3 3 0))) "barycentric 1")
+  (assert (veq? (vector 1 0 0)
+		(point3->barycentric (vector 0 0 0) (vector 0 0 0) (vector 3 0 0) (vector 0 3 0))) "barycentric 2")  
+  )
+
+(geometry-unit-test)

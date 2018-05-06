@@ -1,0 +1,61 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define mesh-cache ())
+(define meshes-load-outstanding 0)
+(define meshes-total-load 0)
+
+(define (get-mesh name)
+  (foldl
+   (lambda (t r)
+     (if (and (not r) (eq? (car t) name))
+         (cadr t) r))
+   #f
+   mesh-cache))
+
+(define (meshes-loaded?)
+  (eq? meshes-load-outstanding 0))
+
+(define (load-mesh-cache name)
+  (let ((type (substring name (- (length name) 3) (length name))))
+    (set! meshes-load-outstanding (+ meshes-load-outstanding 1))
+    (set! meshes-total-load (+ meshes-total-load 1))
+    (cond
+     ((eq? type "obj")
+      (load-resource-txt 
+       name 
+       (lambda (data)
+	 (let ((data (inner-load-obj data)))
+	   (set! meshes-load-outstanding (- meshes-load-outstanding 1))
+	   (set! mesh-cache (cons (list name data) mesh-cache))))))
+     (else
+      (load-resource-txt 
+       name 
+       (lambda (data)
+	 (let ((data (inner-load-ply data)))
+	   (set! meshes-load-outstanding (- meshes-load-outstanding 1))
+	   (set! mesh-cache (cons (list name data) mesh-cache)))))))))
+
+(define (mesh-cache-search name)
+  (let ((mesh (assoc name mesh-cache)))
+    (cond 
+     (mesh (cadr mesh)) ;; deep copy!?
+     (else (msg (+ "mesh not loaded into cache in preload: " name))
+	   (let ((type (substring name (- (length name) 3) (length name))))
+	     (if (eq? type "obj")
+		 (force-load-obj name)
+		 (force-load-ply name)))))))
+	
