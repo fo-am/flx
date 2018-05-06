@@ -1,8 +1,8 @@
 # Fluxus webgl 3D game engine
 
-A browser based game engine used for FoAM Kernow projects such as our Butterfly hunting citizen science games, Viruscraft and Royal Society Summer exhibition Malaria games.
+A fully featured browser based game engine used for FoAM Kernow projects such as our Butterfly hunting citizen science games, Viruscraft, Penelope tablet weaving livecoding system and the Royal Society Summer exhibition Malaria games.
 
-Combines WebGL and HTML5 canvas to provide 3D and 2D game elements. Uses the Scheme programming language throughout, which is compiled to Javascript at load time. Include ability to statically build HTML with assets to provide games and interactive exibits that can be loaded via file:// prototcol without a web server.
+Combines WebGL and HTML5 canvas to provide 3D and 2D game elements. Uses the Scheme functional programming language throughout, which is compiled to Javascript at load time. Designed to be livecodable, via a in-browser editor and also includes the ability to statically build HTML with assets, in order to provide games and interactive exibits that can be loaded via file:// prototcol without a web server.
 
 # Licence
 
