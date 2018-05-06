@@ -37,14 +37,15 @@
 (define FLX_HINT_NOZWRITE       0x00080000)
 
 (define (state gl)
-  (let ((shader (build-shader gl vertex-shader fragment-shader)))
-    (list
-     (mat4.identity (mat4.create))
-     shader
-     (vector 1 1 1)
-     ""
-     FLX_HINT_SOLID
-     0)))
+  (list
+   (mat4.identity (mat4.create))
+   (shader-cache-search "main")
+   (vector 1 1 1)
+   ""
+   FLX_HINT_SOLID
+   0
+   #f 
+   '()))
 
 (define (state-tx s) (list-ref s 0))
 (define (state-shader s) (list-ref s 1))
@@ -57,6 +58,10 @@
 (define (state-modify-hints s v) (list-replace s 4 v))
 (define (state-parent s) (list-ref s 5))
 (define (state-modify-parent s v) (list-replace s 5 v))
+(define (state-hidden s) (list-ref s 6))
+(define (state-modify-hidden s v) (list-replace s 6 v))
+(define (state-uniform-items s) (list-ref s 7))
+(define (state-modify-uniform-items s v) (list-replace s 7 v))
 
 (define (state-clone s)
   (list
@@ -65,4 +70,6 @@
    (vector-clone (state-colour s))
    (state-texture s)
    (state-hints s)
-   (state-parent s)))
+   (state-parent s)
+   (state-hidden s)
+   (state-uniform-items s)))

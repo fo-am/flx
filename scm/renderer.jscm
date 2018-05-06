@@ -15,6 +15,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
 (define (renderer gl)
+  (shader-cache-add gl "main" (list "p" "n" "t" "c") vertex-shader fragment-shader)
   (list
    gl
    ()
@@ -27,7 +28,8 @@
    ()
    (scenenode 0 (state gl) 0 '())
    ()
-   (vector 1 1 1 1)))
+   (vector 1 1 1)
+   45))
 
 (define (renderer-gl r) (list-ref r 0))
 (define (renderer-list r) (list-ref r 1))
@@ -50,6 +52,8 @@
 (define (renderer-modify-grab-stack r v) (list-replace r 10 v))
 (define (renderer-clear-colour r) (list-ref r 11))
 (define (renderer-modify-clear-colour r v) (list-replace r 11 v))
+(define (renderer-view-angle r) (list-ref r 12))
+(define (renderer-modify-view-angle r v) (list-replace r 12 v))
 
 (define (renderer-add r p)
   (renderer-modify-list r (cons p (renderer-list r))))
@@ -76,6 +80,12 @@
 	(state-tx (scenenode-state grabbed))
 	(state-tx (renderer-stack-top r)))))
 
+(define (renderer-global-tx r)
+  (let ((grabbed (renderer-grab-stack-top r)))
+    (if grabbed
+	(scenenode-global-tx grabbed)
+	(state-tx (renderer-stack-top r)))))
+
 (define (renderer-modify-current-state r fn)
   (let ((grabbed (renderer-grab-stack-top r)))
     ;; either modify the grabbed primitive or the stack top
@@ -92,7 +102,7 @@
    r (cons
       ;; state, and a primitive to render in
       (list (state-clone (renderer-stack-top r)) p)
-      (renderer-immediate-prims r))))))
+      (renderer-immediate-prims r))))
 
 (define (renderer-immediate-clear r)
   (renderer-modify-immediate-prims r ()))
@@ -128,9 +138,13 @@
 		   (vz (renderer-clear-colour r))
 		   (list-ref (renderer-clear-colour r) 3))
     (gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))
-    (mat4.perspective 45 (/ gl.viewportWidth gl.viewportHeight) 0.1 1000.0
-		      (renderer-view r))
 
+
+    (mat4.perspective 
+     (renderer-view-angle r) 
+     (/ gl.viewportWidth gl.viewportHeight) 0.1 1000.0
+     (renderer-view r))
+    
     (gl.enable gl.BLEND)
     (gl.blendFunc gl.SRC_ALPHA gl.ONE_MINUS_SRC_ALPHA)
 
@@ -156,24 +170,6 @@
       (scenegraph-render (renderer-scenegraph r) gl view-camera camera-pos ident))
     (renderer-immediate-clear r)))
 
-(define (interleave-pdata a b c d)
-  (js "var ret=[];")
-  (js "for (var i=0; i<a.length; i+=3) {") 
-  (js "ret.push(a[i]);")
-  (js "ret.push(a[i+1]);")
-  (js "ret.push(a[i+2]);")
-  (js "ret.push(b[i]);")
-  (js "ret.push(b[i+1]);")
-  (js "ret.push(b[i+2]);")
-  (js "ret.push(c[i]);")
-  (js "ret.push(c[i+1]);")
-  (js "ret.push(c[i+2]);")
-  (js "ret.push(d[i]);")
-  (js "ret.push(d[i+1]);")
-  (js "ret.push(d[i+2]);")
-  (js "}")
-  ret)
-
 (define (assemble-polyprim gl vertices normals texcoords)
   (primitive
    'polyprim
@@ -182,9 +178,9 @@
     (make-pdata 
      (list "p" "n" "t" "c") 
      (/ (length vertices) 4)
-     (interleave-pdata 
-      vertices normals texcoords 
-      (build-list (* (length vertices) 3) (lambda (_) 1))))
+     (pdata-interleave-pdata-util 
+      (list vertices normals texcoords 
+	    (build-list (* (length vertices) 3) (lambda (_) 1)))))
     )))
 
 ;; todo - probably replace these with the import code path to simplify things...
@@ -199,4 +195,4 @@
       ))))
 
 (define (renderer-print r)
-  (scenegraph-print (renderer-scenegraph r)))
+  (scenegraph-print (renderer-scenegraph r) 0))

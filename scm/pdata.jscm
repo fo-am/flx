@@ -20,10 +20,11 @@
 ;; - choice of separate or interleaved (faster when modifying one type)
 ;; - ability to delete CPU copies
 
-(define (make-pdata types size-verts interleaved-data)
-  (list types size-verts interleaved-data 0))
+(define (make-pdata names size-verts interleaved-data)
+  (list names size-verts interleaved-data 0))
 
-(define (pdata-types v) (list-ref v 0))
+(define (pdata-names v) (list-ref v 0))
+(define (pdata-modify-names! p v) (set! p (list-replace p 0 v)))
 (define (pdata-size-verts v) (list-ref v 1))
 (define (pdata-interleaved-data v) (list-ref v 2))
 (define (pdata-modify-interleaved-data! p v) (set! p (list-replace p 2 v)))
@@ -40,7 +41,48 @@
   (gl.bindBuffer gl.ARRAY_BUFFER (pdata-vbo v))
   (gl.bufferData gl.ARRAY_BUFFER (new Float32Array (pdata-interleaved-data v)) gl.STATIC_DRAW))
 
+(define (pdata-internal-add! gl v name)
+  (let ((oldcount (length (pdata-names v))))
+    (pdata-modify-names! v (append (pdata-names v) name))
+    (pdata-modify-interleaved-data! 
+     v (pdata-insert-util (pdata-interleaved-data v) 
+			  oldcount (vector 0 0 0))))
+  (pdata-build-vbo gl v)
+  (pdata-update-vbo! gl v))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;; take a list of lists of vertex data, and output a 
+;; single interleaved list
+(define (pdata-interleave-pdata-util data)
+  (js "var ret=[];")
+  (js "for (var i=0; i<data[0].length; i+=3) {") 
+  (js "  for (var d=0; d<data.length; d++) {")
+  (js "    ret.push(data[d][i]);")
+  (js "    ret.push(data[d][i+1]);")
+  (js "    ret.push(data[d][i+2]);")
+  (js "  }")
+  (js "}")
+  ret)
+
+;; adds a new list to the interleaved data
+(define (pdata-insert-util data oldcount default-vector)
+  (js "var ret=[];")
+  (js "var count=0;")
+  (js "for (var i=0; i<data.length; i+=3) {") 
+  (js "  ret.push(data[i]);")
+  (js "  ret.push(data[i+1]);")
+  (js "  ret.push(data[i+2]);")
+  (js "  if (count===oldcount-1) {")
+  (js "    ret.push(default_vector[0]);")
+  (js "    ret.push(default_vector[1]);")
+  (js "    ret.push(default_vector[2]);")
+  (js "    count=-1;")
+  (js "  }")
+  (js " count++;")
+  (js "}")
+  ret)
 
 (define (stride-map fn interleaved stride offset)
   (js "for (var stride_map_i=offset; stride_map_i<interleaved.length; stride_map_i+=stride) {")
@@ -51,38 +93,45 @@
   (js "};")
   interleaved)
 
-(define (pdata-offset name)
-  ;; hmm ok for now but FIX THIS...
-  (cond ((eq? name "p") 0)
-	((eq? name "n") 3)
-	((eq? name "t") 6)
-	(else 9)))
+(define (pdata-offset v name)
+  (define (_ names r)
+    (cond
+     ((null? names) #f)
+     ((eq? name (car names)) r)
+     (else (_ (cdr names) (+ r 3)))))
+  (_ (pdata-names v) 0))
+
+;; old fast hardcoded version - perhaps for default types if slow
+;  (cond ((eq? name "p") 0)
+;	((eq? name "n") 3)
+;	((eq? name "t") 6)
+;	(else 9)))
 
 (define (pdata-internal-map! gl v fn name)
-  (let ((offset (pdata-offset name)))  
-    (let ((stride (* (length (pdata-types v)) 3))) 
+  (let ((offset (pdata-offset v name)))  
+    (let ((stride (* (length (pdata-names v)) 3))) 
       (pdata-modify-interleaved-data!
        v (stride-map fn (pdata-interleaved-data v) stride offset))
       ;; might want to do this separately as it's potentially slow
       (pdata-update-vbo! gl v))))
 
 (define (pdata-internal-set! gl pdata name pos value)
-  (let ((offset (pdata-offset name)))  
-    (let ((stride (* (length (pdata-types pdata)) 3)))
-      (when (> (+ offset (* pos stride)) 
-	       (length (pdata-interleaved-data pdata))) 
-	    (msg (+ offset (* pos stride)))
-	    (msg (length (pdata-interleaved-data pdata)))
-	    (msg "WOT")
-	    (welw)
-	    )
+  (let ((offset (pdata-offset pdata name)))  
+    (let ((stride (* (length (pdata-names pdata)) 3)))
+      ;; (when (> (+ offset (* pos stride)) 
+      ;; 	       (length (pdata-interleaved-data pdata))) 
+      ;; 	    (msg (+ offset (* pos stride)))
+      ;; 	    (msg (length (pdata-interleaved-data pdata)))
+      ;; 	    (msg "WOT")
+      ;; 	    (welw)
+      ;; 	    )
       (js "pdata_interleaved_data(pdata)[offset+pos*stride]=value[0];")
       (js "pdata_interleaved_data(pdata)[offset+pos*stride+1]=value[1];")
       (js "pdata_interleaved_data(pdata)[offset+pos*stride+2]=value[2];"))))
 
 (define (pdata-internal-ref gl pdata name pos)
-  (let ((offset (pdata-offset name)))  
-    (let ((stride (* (length (pdata-types pdata)) 3))) 
+  (let ((offset (pdata-offset pdata name)))  
+    (let ((stride (* (length (pdata-names pdata)) 3))) 
       (vector
        (js "pdata_interleaved_data(pdata)[offset+pos*stride]")
        (js "pdata_interleaved_data(pdata)[offset+pos*stride+1]")
@@ -104,25 +153,27 @@
     (mat4.toRotationMat local normal)
     
     (gl.useProgram shader)
-    
     (gl.bindBuffer gl.ARRAY_BUFFER (pdata-vbo pdata))
 
+    ;; set uniforms
+    (apply-uniform-items! gl shader (state-uniform-items state))
+    
     ;; 12 bytes for 3 floats...
-    (gl.vertexAttribPointer 
-     shader.vertexPositionAttribute 3 gl.FLOAT false 48 0)
-    (gl.vertexAttribPointer 
-     shader.vertexNormalAttribute 3 gl.FLOAT false 48 12)
-    (gl.vertexAttribPointer 
-     shader.vertexTextureAttribute 3 gl.FLOAT false 48 24)
-    (gl.vertexAttribPointer 
-     shader.vertexColorAttribute 3 gl.FLOAT false 48 36)
+    (define total-bytes (* (length (pdata-names pdata)) 12))
+
+    (index-for-each
+     (lambda (index name)
+       (gl.enableVertexAttribArray index)
+       (gl.vertexAttribPointer 
+	index 3 gl.FLOAT false total-bytes (* index 12)))
+     (pdata-names pdata))
 
     (if (eq? texture "")
 	(bind-texture gl shader "white.png")
 	(bind-texture gl shader texture))
     
-    (gl.uniformMatrix4fv shader.ModelViewMatrixUniform false model-view)
-    (gl.uniformMatrix4fv shader.NormalMatrixUniform false normal)
+    (gl.uniformMatrix4fv shader.ModelViewMatrix false model-view)
+    (gl.uniformMatrix4fv shader.NormalMatrix false normal)
 
     (gl.uniform3fv shader.DiffuseColour colour)
     (gl.uniform3fv shader.CameraPos camera-pos)

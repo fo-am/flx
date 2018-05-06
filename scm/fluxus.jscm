@@ -14,22 +14,32 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(load "flx/scm/base.jscm")
 (load "flx/scm/texture.jscm")
 (load "flx/scm/maths.jscm")
 (load "flx/scm/glsl.jscm")
-(load "flx/scm/shaders.jscm")
 (load "flx/scm/state.jscm")
 (load "flx/scm/pdata.jscm")
 (load "flx/scm/scenegraph.jscm")
 (load "flx/scm/primitive.jscm")
 (load "flx/scm/data.jscm")
+(load "flx/scm/shaders.jscm")
 (load "flx/scm/renderer.jscm")
 (load "flx/scm/instanceprim.jscm")
 (load "flx/scm/polyprim.jscm")
+(load "flx/scm/geometry.jscm")
+(load "flx/scm/meshcache.jscm")
+(load "flx/scm/shadercache.jscm")
 
 (define the-renderer 0)
 
-(define (time) (js "new Date().getTime()/1000;"))
+(define flx-start-time (js "new Date().getTime()/1000"))
+ 
+(define (time) 
+  (let ((time-now (js "new Date()")))
+    (- (/ (time-now.getTime) 1000) 
+       flx_start_time)))
+
 (define (push) (set! the-renderer (renderer-stack-dup the-renderer)))
 (define (pop) (set! the-renderer (renderer-stack-pop the-renderer)))
 
@@ -86,11 +96,17 @@
 (define (get-transform)
   (renderer-current-tx the-renderer))
 
+(define (get-global-transform)
+  (renderer-global-tx the-renderer))
+
 (define (camera-transform)
   (renderer-camera the-renderer))
 
 (define (set-camera-transform tx)
   (set! the-renderer (renderer-modify-camera the-renderer tx)))
+
+(define (set-camera-angle a)
+  (set! the-renderer (renderer-modify-view-angle the-renderer a)))
 
 ;;(define (vtransform m v)
 ;; (mat4.multiplyVec3 m v))
@@ -106,10 +122,19 @@
   (let ((ret (list (vx p) (vy p) (vz p) 1))
         (gl (renderer-gl the-renderer)))
     (mat4.multiplyVec4 (renderer-world-to-screen the-renderer) ret)
-    (vec3.create (list (* (+ (/ (vx ret) (list-ref ret 3)) 1) gl.viewportWidth 0.6)
-                       (* (+ (/ (- 0 (vy ret)) (list-ref ret 3)) 0.95) gl.viewportHeight 0.55)
+    (let ((z (list-ref ret 3)))
+      (vec3.create 
+       (list (* (+ (/ (vx ret) z) 1) gl.viewportWidth 0.5)
+	     (* (+ (/ (- 0 (vy ret)) z) 1) gl.viewportHeight 0.5)
+	     0)))))
 
-                       0))))
+(define (primitive-screen-pos p)
+  (project-point
+   (with-primitive p (mtransform (get-transform) (vector 0 0 0)))))
+
+(define (primitive-global-screen-pos p)
+  (project-point
+   (with-primitive p (mtransform (get-global-transform) (vector 0 0 0)))))
 
 (define (scale v)
   (mat4.scale (renderer-current-tx the-renderer) v))
@@ -125,13 +150,61 @@
            (lambda (state)
              (state-modify-texture state name)))))
 
-(define (shader vert frag)
-  (set! the-renderer (renderer-modify-current-state
-           the-renderer
+(define (shader-compile name attrib-names vert frag)
+  (internal-load-shader-cache (renderer-gl the-renderer) name attrib-names vert frag))
+
+(define (shader-assign-compiled name)
+  (set! the-renderer 
+	(renderer-modify-current-state
+	 the-renderer
            (lambda (state)
              (state-modify-shader
               state
-              (build-shader (renderer-gl the-renderer) vert frag))))))
+              (shader-cache-search name))))))
+
+(define (shader vert frag)
+  (set! the-renderer 
+	(renderer-modify-current-state
+	 the-renderer
+           (lambda (state)
+             (state-modify-shader
+              state
+              (build-shader (renderer-gl the-renderer) 
+			    (list "p" "n" "t" "c") vert frag))))))
+
+(define (shader-attrib-names names vert frag)
+  (set! the-renderer 
+	(renderer-modify-current-state
+	 the-renderer
+	 (lambda (state)
+	   (state-modify-shader
+	    state
+	    (build-shader (renderer-gl the-renderer) names vert frag))))))
+
+;; setting uniforms - this one sets the unform for this shader program
+;; affecting all primitives using it
+(define (shader-shared-uniform! name type value)
+  (set! the-renderer 
+	(renderer-modify-current-state
+	 the-renderer
+           (lambda (state)
+	     (let ((gl (renderer-gl the-renderer))
+		   (shader (state-shader state)))
+	       (gl.useProgram shader) 
+	       (internal-uniform! gl shader name type value)
+	       state)))))
+
+;; setting uniforms - locally to this primitive state only
+(define (shader-uniform! name type value)
+  (set! the-renderer 
+	(renderer-modify-current-state
+	 the-renderer
+           (lambda (state)
+	     (let ((gl (renderer-gl the-renderer)))
+	       (state-modify-uniform-items
+		state (set-uniform-item
+		       (make-uniform-item name type value)
+		       (state-uniform-items state))))))))
 
 (define (colour col)
   (set! the-renderer (renderer-modify-current-state
@@ -190,7 +263,7 @@
 
 (define (load-primitive url)
   (let ((gl (renderer-gl the-renderer))
-	(raw (load-obj url)))
+	(raw (mesh-cache-search url)))
     (add-to-scenegraph!     
      (primitive
       'polyprim
@@ -198,7 +271,7 @@
 
 (define (load-ply-primitive url)
   (let ((gl (renderer-gl the-renderer))
-	(raw (LoadPLY url)))
+	(raw (mesh-cache-search url)))
     (add-to-scenegraph!     
      (primitive
       'polyprim
@@ -223,6 +296,12 @@
            the-renderer
            (lambda (state)
              (state-modify-parent state id)))))
+
+(define (hide v)
+  (set! the-renderer (renderer-modify-current-state
+           the-renderer
+           (lambda (state)
+             (state-modify-hidden state v)))))
 
 (define (add-to-scenegraph! prim)
   (let ((id (new-id)))
@@ -283,6 +362,16 @@
 	  (primitive-inner
 	   (scenenode-primitive (renderer-grab-stack-top the-renderer))))
 	 fn name)))
+
+(define (pdata-add! name)
+  (when (renderer-grabbed? the-renderer)
+	 ;; todo: check type is polyprim
+	(let ((pp (primitive-inner
+		   (scenenode-primitive (renderer-grab-stack-top the-renderer)))))
+	  (pdata-internal-add!
+	   (renderer-gl the-renderer) 
+	   (polyprim-pdata pp)
+	   name))))
 
 (define (pdata-size)
   (when (renderer-grabbed? the-renderer)
@@ -353,12 +442,11 @@
 (define (clear)
   (let ((canvas (document.getElementById "webgl-canvas")))
     (let ((gl (canvas.getContext "experimental-webgl")))
-      (msg "startup...")
       (set! gl.viewportWidth canvas.width)
       (set! gl.viewportHeight canvas.height)
       (set! the-renderer (renderer gl))
       ;; set up camera transform
-      (mat4.translate (renderer-camera the-renderer) (list 0 0 -20))
+      (mat4.translate (renderer-camera the-renderer) (list 0 0 -38))
       (set! the-renderer (renderer-build-prefab the-renderer))
       (gl.clearColor 0.0 0.0 0.0 1.0)
       (gl.enable gl.DEPTH_TEST)
@@ -366,5 +454,20 @@
       ;; make sure the default texture is loaded
       (texture (load-texture "white.png"))
       ))))
+
+(define (resize-glcanvas canvas) 
+  ;; Lookup the size the browser is displaying the canvas.
+  (let ((displayWidth canvas.clientWidth)
+	(displayHeight canvas.clientHeight)) 
+    ;; Check if the canvas is not the same size.
+    (when (or (not (eq? canvas.width displayWidth))
+	      (not (eq? canvas.height displayHeight)))
+	  ;; Make the canvas the same size
+	  (set! canvas.width displayWidth)
+	  (set! canvas.height displayHeight)
+	  (let ((gl (canvas.getContext "experimental-webgl")))
+	    (set! gl.viewportWidth canvas.width)
+	    (set! gl.viewportHeight canvas.height)))))
+
 
 (clear)

@@ -23,6 +23,9 @@
 var ditto = {};
 
 ditto.symbols = [];
+ditto.current_define = "";
+ditto.function_desc = {};
+ditto.current_file = [];
 
 ditto.find_symbol = function(sym) {
     var f=ditto.symbols.indexOf(sym);
@@ -239,11 +242,36 @@ ditto.comp_lambda = function(args) {
     var last=expr[nexpr-1];
     var eexpr=ditto.sublist(expr,0,nexpr-1);
 
+    // if not anon
+    if (ditto.current_define!="" && ditto.current_define!="_") { 
+	if (ditto.function_desc[ditto.current_define]) {
+	    ditto.to_page("output","function "+ditto.current_define+" ("+ditto.function_desc[ditto.current_define]+") has been redefined as ("+ditto.car(args)+")");
+	}
+	// record number of args
+	ditto.function_desc[ditto.current_define]=ditto.car(args);
+	ditto.current_define="";
+    }
+
     return "function ("+ditto.car(args).join()+")\n"+
         // adding semicolon here
         "{\n"+ditto.list_map(ditto.comp,eexpr).join(";\n")+"\n"+
         "return "+ditto.comp(last)+"\n}\n";
 };
+
+ditto.check_defined_args = function(fn,args) {
+    if (args && args.length>0) {
+	var desc = ditto.function_desc[fn];
+	//console.log(args);
+	if (desc) {
+	    if (args.length!=desc.length) {
+		ditto.to_page("output", "call to "+fn+" has wrong number of arguments, given: "+
+			      args.length+" ("+args+") expected: "+
+			      desc.length+" ("+desc+")");
+		
+	    }
+	}
+    }
+}
 
 // ( body ... )
 // not used... yet
@@ -352,7 +380,12 @@ ditto.core_forms = function(fn, args) {
 
     if (fn == "define") {
         // adding semicolon here
-        if (ditto.check(fn,args,2,-1)) return debug+"var "+ditto.car(args)+" = "+ditto.comp(ditto.cadr(args))+";";
+        if (ditto.check(fn,args,2,-1)) {
+	    ditto.current_define=ditto.car(args);
+	    var ret=debug+"var "+ditto.car(args)+" = "+ditto.comp(ditto.cadr(args))+";";
+	    ditto.current_define="";
+	    return ret;
+	}
     }
 
     if (fn == "list") {
@@ -530,7 +563,6 @@ ditto.core_forms = function(fn, args) {
 
     if (fn == "load") {
         var v=ditto.comp(ditto.car(args));
-        //console.log("loading "+v);
         return ditto.load(v.substring(1,v.length-1));
     }
 
@@ -588,6 +620,9 @@ ditto.comp = function(f) {
             var r = ditto.core_forms(fn,args);
             if (r) return r;
 
+	    // check args
+	    ditto.check_defined_args(fn,args);
+	    
             // fallthrough to outer javascript environment
             return fn+"("+ditto.list_map(ditto.comp,args).join()+")";
         } else {
@@ -614,32 +649,130 @@ ditto.compile_code_unparsed = function(scheme_code) {
     return ditto.comp(parse_tree);
 };
 
+////////////////////////////////////////////////////
+// resource loading
+
+ditto.load_resource_static = false;
+
+// resource file map of filenames to data, ascii or base64 encoded binary
+ditto.resources = {}
+
+function init_resources(resources) {
+    ditto.load_resource_static = true;
+    ditto.resources = resources;
+}
+
+// single point of entry for all loading
+function load_resource_txt(url, loadedfn) {
+    if (ditto.load_resource_static) {
+	var ret = ditto.resources[url];
+	if (ret==undefined) {
+	    ditto.to_page("output","error loading statically: "+url+" has not been embedded");
+	} else {
+	    loadedfn(ret);
+	}
+    } else {
+	var xmlHttp = new XMLHttpRequest();
+	xmlHttp.addEventListener("load", function() {
+	    loadedfn(xmlHttp.responseText);
+	});
+	xmlHttp.open("GET", url);
+	xmlHttp.overrideMimeType("script");
+	xmlHttp.send(null);
+    }
+}
+
+ditto.load_resource_txt_badly = function(url) {
+    if (ditto.load_resource_static) {
+	var ret = ditto.resources[url];
+	if (ret==undefined) {
+	    ditto.to_page("output","error loading statically: "+url+" has not been embedded");
+	} else {
+	    return ret;
+	}
+    } else {
+	var xmlHttp = new XMLHttpRequest();
+	xmlHttp.open("GET", url, false);
+	xmlHttp.overrideMimeType("script");
+	xmlHttp.send(null);
+	return xmlHttp.responseText;
+    }
+}
+
+function load_resource_img(url, loadedfn) {
+    if (ditto.load_resource_static) {
+	var ret = ditto.resources[url];
+	if (ret==undefined) {
+	    ditto.to_page("output","error loading statically: "+url+" has not been embedded");
+	} else {
+	    var image = new Image();
+	    image.src="data:image/png;base64,"+ret;
+	    // still need to wait to process data url
+	    image.onload = function() {
+		loadedfn(image);
+	    }
+	}
+    } else {
+	var image = new Image();
+	image.onload = function() {
+	    loadedfn(image);
+	};
+	image.src = url;
+    }
+}
+
+/////////////////////////////////////////////////////////
+// loading code - todo: make these asyncronous
+
 ditto.load = function(url) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", url, false );
-    xmlHttp.overrideMimeType("script");
-    xmlHttp.send( null );
-    var str=xmlHttp.responseText;
-    return "\n/////////////////// "+url+"\n"+ditto.compile_code(str)+"\n";
+    ditto.current_file.push(url);
+    var str=ditto.load_resource_txt_badly(url);
+    var ret= "\n/////////////////// "+url+"\n"+ditto.compile_code(str)+"\n";
+    ditto.current_file.pop();
+    return ret;
 };
 
 ditto.load_unparsed = function(url) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", url, false );
-    xmlHttp.overrideMimeType("script");
-    xmlHttp.send( null );
-    var str=xmlHttp.responseText;
+    var str=ditto.load_resource_txt_badly(url);
     return "\n/////////////////// "+url+"\n"+ditto.compile_code_unparsed(str)+"\n";
 };
 
+ditto.get_current_file = function() {
+    if (ditto.current_file.length==0) {
+	return "no file";
+    } else {
+	return ditto.current_file[ditto.current_file.length-1];
+    }
+}
 
 ditto.to_page = function(id,html)
 {
-    var div=document.createElement("div");
+/*    var div=document.createElement("div");
     div.id = "foo";
     div.innerHTML = html;
-    document.getElementById(id).appendChild(div);
+    document.getElementById(id).appendChild(div);*/
+    console.log("ditto says: ("+ditto.get_current_file()+") "+html);
 };
+
+// this needs to go somewhere else
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+  var new_array = new Array(array.length);
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    new_array[currentIndex] = array[randomIndex];
+    new_array[randomIndex] = array[currentIndex];
+  }
+
+  return new_array;
+}
+
 
 function init(filenames) {
     jQuery(document).ready(function($) {
@@ -663,6 +796,37 @@ function init(filenames) {
         });
 
 	js+="crank()";
+
+        try {
+            //eval(js);
+            setTimeout(js,0);
+	    //console.log(js);
+        } catch (e) {
+	    //console.log(js);
+            console.log(e);
+            console.log(e.stack);
+            ditto.to_page("output", "Error: "+e);	
+            ditto.to_page("output", "Error: "+e.stack);	
+        }
+    });
+};
+
+function init_static(syntax,source) {
+    jQuery(document).ready(function($) {
+
+        // load and compile the syntax parser
+        var syntax_parse=ditto.compile_code_unparsed(syntax);
+        try {
+            //console.log(syntax_parse);
+            do_syntax=eval(syntax_parse);
+        } catch (e) {
+            console.log("An error occured parsing (syntax) of "+syntax_parse);
+            console.log(e);
+            console.log(e.stack);
+        }
+
+        var js=ditto.compile_code(source);
+	js+="; crank();";
 
         try {
             //eval(js);

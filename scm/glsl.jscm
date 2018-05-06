@@ -22,73 +22,122 @@
 	(begin
 	  (alert (gl.getShaderInfoLog shader))
 	  #f)
-	shader))))
+	shader)))
 
-(define (build-shader gl vert frag)
+;; can't call this before link time - so can't use it to automatically
+;; bind locations to names :( so we need to pass in expected attrib-names
+(define (get-attrib-info-list gl program)
+  (define (_ i c)
+    (if (>= i c)
+	'()
+	(cons (gl.getActiveAttrib program i) (_ (+ i 1) c))))
+  (_ 0 (dbg (gl.getProgramParameter program gl.ACTIVE_ATTRIBUTES))))
+
+      ;; (let ((attrib-list (get-attrib-info-list gl shader-program)))
+      ;; 	(msg attrib-list)
+      ;; 	(index-for-each
+      ;; 	 (lambda (index info)
+      ;; 	   (msg (+ index " " info.name))
+      ;; 	   (gl.bindAttribLocation shader-program index info.name))
+      ;; 	 attrib-list)
+
+
+      ;; 	(index-for-each
+      ;; 	 (lambda (index info)
+      ;; 	   (gl.enableVertexAttribArray index))
+      ;; 	 attrib-list))
+
+;; this version is useful, however...
+(define (get-uniform-info-list gl program)
+  (define (_ i c)
+    (if (>= i c)
+	'()
+	(cons (gl.getActiveUniform program i) (_ (+ i 1) c))))
+  (_ 0 (dbg (gl.getProgramParameter program gl.ACTIVE_UNIFORMS))))
+
+(define (build-shader gl attrib-names vert frag)
   (let ((fragment-shader (compile-shader gl gl.FRAGMENT_SHADER frag))
 	(vertex-shader (compile-shader gl gl.VERTEX_SHADER vert)))
     (let ((shader-program (gl.createProgram)))
       (gl.attachShader shader-program vertex-shader)
       (gl.attachShader shader-program fragment-shader)
+      
+      (index-for-each
+       (lambda (index attrib-name)
+	 (gl.bindAttribLocation shader-program index attrib-name))
+       attrib-names)
+      
       (gl.linkProgram shader-program)
       (when (not (gl.getProgramParameter shader-program gl.LINK_STATUS))
             (alert (gl.getShaderInfoLog shader)))
+
       (gl.useProgram shader-program)
 
-      (when (not (eq? (gl.getAttribLocation shader-program "p") -1))
-	    (set! shader-program.vertexPositionAttribute
-		  (gl.getAttribLocation shader-program "p"))
-	    (gl.enableVertexAttribArray shader-program.vertexPositionAttribute))
+;      (index-for-each
+;       (lambda (index attrib-name)
+;	 (if (not (eq? (gl.getAttribLocation shader-program attrib-name) -1))
+;	     (gl.enableVertexAttribArray index)
+;	     (msg (+ "asked for " attrib-name " but not in shader (maybe optimised away)"))))
+ ;      attrib-names)
       
-      (when (not (eq? (gl.getAttribLocation shader-program "n") -1))
-	    (set! shader-program.vertexNormalAttribute
-		  (gl.getAttribLocation shader-program "n"))
-	    (gl.enableVertexAttribArray shader-program.vertexNormalAttribute))
-      
-      (when (not (eq? (gl.getAttribLocation shader-program "t") -1))
-	    (set! shader-program.vertexTextureAttribute
-		  (gl.getAttribLocation shader-program "t"))
-	    (gl.enableVertexAttribArray shader-program.vertexTextureAttribute))
+      ;; expose all the uniform variables  
+      (for-each
+       (lambda (info)
+	 (set! (js "shader_program[info.name]") (gl.getUniformLocation shader-program info.name)))
+       (get-uniform-info-list gl shader_program))
 
-      (when (not (eq? (gl.getAttribLocation shader-program "c") -1))
-	    (set! shader-program.vertexColorAttribute
-		  (gl.getAttribLocation shader-program "c"))
-	    (gl.enableVertexAttribArray shader-program.vertexColorAttribute))
-      
-      (when (gl.getUniformLocation shader-program "ModelViewMatrix")
-	    (set! shader-program.ModelViewMatrixUniform
-		  (gl.getUniformLocation shader-program "ModelViewMatrix")))
-      
-      (when (gl.getUniformLocation shader-program "NormalMatrix")
-	    (set! shader-program.NormalMatrixUniform
-		  (gl.getUniformLocation shader-program "NormalMatrix")))
-      
-      (when (gl.getUniformLocation shader-program "AmbientColour")
-	    (set! shader-program.AmbientColour
-		  (gl.getUniformLocation shader-program "AmbientColour")))
-      (when (gl.getUniformLocation shader-program "DiffuseColour")
-	    (set! shader-program.DiffuseColour
-		  (gl.getUniformLocation shader-program "DiffuseColour")))
-      (when (gl.getUniformLocation shader-program "SpecularColour")
-	    (set! shader-program.SpecularColour
-		  (gl.getUniformLocation shader-program "SpecularColour")))
-      (when (gl.getUniformLocation shader-program "AmbientIntensity")
-	    (set! shader-program.AmbientIntensity
-		  (gl.getUniformLocation shader-program "AmbientIntensity")))
-      (when (gl.getUniformLocation shader-program "DiffuseIntensity")
-	    (set! shader-program.DiffuseIntensity
-		  (gl.getUniformLocation shader-program "DiffuseIntensity")))
-      (when (gl.getUniformLocation shader-program "SpecularIntensity")
-	    (set! shader-program.SpecularIntensity
-		  (gl.getUniformLocation shader-program "SpecularIntensity")))
-      (when (gl.getUniformLocation shader-program "Roughness")
-	    (set! shader-program.Roughness
-		  (gl.getUniformLocation shader-program "Roughness")))
-      (when (gl.getUniformLocation shader-program "LightPos")
-	    (set! shader-program.LightPos
-		  (gl.getUniformLocation shader-program "LightPos")))
-      (when (gl.getUniformLocation shader-program "CameraPos")
-	    (set! shader-program.CameraPos
-		  (gl.getUniformLocation shader-program "CameraPos")))
-      
       shader-program)))
+
+;; should presumably replace this stuff with uniform buffer objects?
+(define (make-uniform-item name type value) (list name type value))
+(define (uniform-item-name u) (list-ref u 0))
+(define (uniform-item-type u) (list-ref u 1))
+(define (uniform-item-value u) (list-ref u 2))
+
+(define (apply-uniform-items! gl shader ui)
+  (for-each 
+   (lambda (u)
+     (internal-uniform! 
+      gl 
+      shader
+      (uniform-item-name u) 
+      (uniform-item-type u)
+      (uniform-item-value u)))
+   ui))
+
+(define (set-uniform-item ui l)
+  (cond
+   ((null? l) (list ui))
+   ((eq? (uniform-item-name (car l)) (uniform-item-name ui))
+    (cons ui (cdr l)))
+   (else
+    (cons (car l) (set-uniform-item ui (cdr l))))))
+
+;; todo: add matrices
+(define (internal-uniform! gl shader name type value)
+  (cond
+   ((number? value)
+    (if (eq? type "f")
+	(gl.uniform1f (js "shader[name]") value)
+	(gl.uniform1i (js "shader[name]") value)))
+   (else
+    (cond
+     ((eq? (length value) 1)
+      (if (eq? type "f")
+	  (gl.uniform1fv (js "shader[name]") value)
+	  (gl.uniform1iv (js "shader[name]") value)))
+     ((eq? (length value) 2)
+      (if (eq? type "f")
+	  (gl.uniform2fv (js "shader[name]") value)
+	  (gl.uniform2iv (js "shader[name]") value)))
+     ((eq? (length value) 3)
+      (if (eq? type "f")
+	  (gl.uniform3fv (js "shader[name]") value)
+	  (gl.uniform3iv (js "shader[name]") value)))
+     ((eq? (length value) 4)
+      (if (eq? type "f")
+	  (gl.uniform4fv (js "shader[name]") value)
+	  (gl.uniform4iv (js "shader[name]") value)))
+     (else
+      (msg (+ "internal-shader-set: unhandled type: " value)))))))
+ 

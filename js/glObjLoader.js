@@ -1,4 +1,4 @@
-function load_obj(url) {
+function force_load_obj(url) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open( "GET", url, false );
     xmlHttp.overrideMimeType("script");
@@ -95,6 +95,7 @@ function inner_load_obj(string) {
         }
     }
     // returns fluxus vbo object (see vbo.jscm)
-    return [["p","n","t","c"], (verts.length/3)/4, verts, 0];
+    return [["p","n","t","c"],
+	    (verts.length/3)/4, verts, 0];
 }
 

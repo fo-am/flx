@@ -14,13 +14,15 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define (scenenode id state primitive children) (list id state primitive children)))
+(define (scenenode id state primitive children) (list id state primitive children (mat4.identity (mat4.create))))
 (define (scenenode-id p) (list-ref p 0))
 (define (scenenode-state p) (list-ref p 1))
 (define (scenenode-modify-state! p v) (set! p (list-replace p 1 v)))
 (define (scenenode-primitive p)  (list-ref p 2))
 (define (scenenode-children p)  (list-ref p 3))
 (define (scenenode-modify-children p v)  (list-replace p 3 v))
+(define (scenenode-global-tx p) (list-ref p 4))
+(define (scenenode-modify-global-tx! p v) (set! p (list-replace p 4 v)))
 ;;(define (scenenode-modify-add-child p child) (list-replace p 3 (cons child (scenenode-children p))))
 
 (define (scenenode-print p)
@@ -91,31 +93,36 @@
       (scenenode-children sn))))))
 
 (define (scenegraph-render sn gl view-camera camera-pos tx)
-  (when (not (zero? (scenenode-primitive sn)))
-	(let ((hints (state-hints (scenenode-state sn))))
-	  ;; hints that affect all types of primitive
-	  (if (bitwise-and hints FLX_HINT_NOZWRITE)
-	      (gl.depthMask false)
-	      (gl.depthMask true))
-	  (if (bitwise-and hints FLX_HINT_CULL_FACE)
-	      (gl.enable gl.CULL_FACE)
-	      (gl.disable gl.CULL_FACE))
-	  (if (bitwise-and hints FLX_HINT_CULL_CCW) 
-	      (gl.frontFace gl.CW)
-	      (gl.frontFace gl.CCW))
-	  (if (bitwise-and hints FLX_HINT_IGNORE_DEPTH) 
-	      (gl.disable gl.DEPTH_TEST)
-	      (gl.enable gl.DEPTH_TEST))
-	  (primitive-render 
-	   (scenenode-primitive sn) gl view-camera camera-pos 
-	   (scenenode-state sn)
-	   tx)))
-  ;;(msg (+ "len:" (length (scenenode-children sn))))
-  (for-each 
-   (lambda (child)
-     (scenegraph-render child gl view-camera camera-pos
-			(state-tx (scenenode-state sn))))
-   (scenenode-children sn)))
+  (when (not (state-hidden (scenenode-state sn)))
+	(when (not (zero? (scenenode-primitive sn)))
+	      (let ((hints (state-hints (scenenode-state sn))))
+		;; hints that affect all types of primitive
+		(if (bitwise-and hints FLX_HINT_NOZWRITE)
+		    (gl.depthMask false)
+		    (gl.depthMask true))
+		(if (bitwise-and hints FLX_HINT_CULL_FACE)
+		    (gl.enable gl.CULL_FACE)
+		    (gl.disable gl.CULL_FACE))
+		(if (bitwise-and hints FLX_HINT_CULL_CCW) 
+		    (gl.frontFace gl.CW)
+		    (gl.frontFace gl.CCW))
+		(if (bitwise-and hints FLX_HINT_IGNORE_DEPTH) 
+		    (gl.disable gl.DEPTH_TEST)
+		    (gl.enable gl.DEPTH_TEST))
+		(primitive-render 
+		 (scenenode-primitive sn) gl view-camera camera-pos 
+		 (scenenode-state sn)
+		 tx)))
+	
+	(let ((child-tx (mat4.create)))
+	  ;; pass the heirachical transform down
+	  (mat4.multiply tx (state-tx (scenenode-state sn)) child-tx)    
+	  ;; child-tx is actually the local transform for this object
+	  (scenenode-modify-global-tx! sn child-tx)
+	  (for-each 
+	   (lambda (child)
+	     (scenegraph-render child gl view-camera camera-pos child-tx))
+	   (scenenode-children sn)))))
 
 (define (scenegraph-print sn depth)
   (scenenode-print sn)

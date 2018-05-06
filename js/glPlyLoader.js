@@ -1,3 +1,12 @@
+function force_load_ply(url) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", url, false );
+    xmlHttp.overrideMimeType("script");
+    xmlHttp.send( null );
+    var str=xmlHttp.responseText;
+    return inner_load_ply(xmlHttp.responseText);
+}
+
 // PLY object
 function PLY() { this.object; }
 
@@ -207,7 +216,8 @@ function inner_load_ply(data) {
 	tpos+=2;
     }
 
-    return [["p","n","t","c"], arrayIndex.length*3, verts, 0];
+    return [["p","n","t","c"],
+	    arrayIndex.length*3, verts, 0];
     // return [
     //     new Float32Array(arrayVertex),
     //     new Float32Array(arrayNormal),
@@ -217,13 +227,3 @@ function inner_load_ply(data) {
     // ];
 }
 
-// Load PLY function;
-function LoadPLY(filename)
-{
-    var xmlhttp = new XMLHttpRequest();
-    //console.log("Loading Model <" + filename + ">...");
-    xmlhttp.open("GET", filename, false);
-    xmlhttp.send();
-    var str=xmlhttp.responseText;
-    return inner_load_ply(str);
-}

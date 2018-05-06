@@ -18,15 +18,6 @@
 
 (define display (lambda (str) (console.log str)))
 (define newline (lambda () (console.log "\n")))
-(define (msg a) 
-  (console.log (ditto-pretty-print a)))
-(define (dbg a) (msg a) a)
-(define (error a) (msg a))
-
-(define (ditto-pretty-print a)
-  (cond
-   ((list? a) (ditto-print-list a))
-   (else (+ "" a))))
 
 (define (ditto-print-list a)
   (let ((str ""))
@@ -38,9 +29,22 @@
     (set! str (+ str "]"))
     str))
 
+(define (ditto-pretty-print a)
+  (cond
+   ((list? a) (ditto-print-list a))
+   (else (+ "" a))))
+
+(define (msg a) 
+  (console.log (ditto-pretty-print a)))
+
+(define (dbg a) (msg a) a)
+(define (error a) (msg a))
+
 (define (zero? n) (js "n===0"))
 (define (eqv? a b) (eq? a b))
 (define (equal? a b) (eq? a b))
+(define (floor n) (Math.floor n))
+(define (fmod a b) (js "Number((a - (Math.floor(a / b) * b)).toPrecision(8));"))
 
 (define (random n)
   (Math.floor (* (Math.random) n)))
@@ -264,11 +268,13 @@
 ;          (scheme-txt (car l)))))))
 ;  (string-append "(list " (_ l "") ")"))
 
-
-(define a 0)
+(define (assert condition message) 
+  (when (not condition) 
+	(js "; throw message || 'assertion failed';")))
 
 (define unit-test
   (lambda ()
+    (define a 0)
     (set! a 10)
     (when (not (eq? 4 4)) (display "eq? failed"))
     (when (eq? 2 4) (display "eq?(2) failed"))

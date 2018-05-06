@@ -19,23 +19,27 @@
 (js "var pi = Math.PI")
 (js "var two_pi = Math.PI*2")
 
+
 (define (sqrt a) (Math.sqrt a))
 (define (pow a b) (Math.pow a b))
 (define (square x) (* x x))
 (define (trunc x) (js "~~x"))
+(define (feq? a b) (< (Math.abs (- a b)) Number.EPSILON))
 
-(define vector
-  (lambda (x y z)
-    (list x y z)))
+(define (vector x y z) (list x y z))
 
-(define vx (lambda (v) (list-ref v 0)))
-(define vy (lambda (v) (list-ref v 1)))
-(define vz (lambda (v) (list-ref v 2)))
-(define vw (lambda (v) (list-ref v 3)))
+(define (vx v) (list-ref v 0))
+(define (vy v) (list-ref v 1))
+(define (vz v) (list-ref v 2))
+(define (vw v) (list-ref v 3))
 
-(define vector-clone
-  (lambda (v)
-    (vector (vx v) (vy v) (vz v))))
+(define (veq? a b) 
+  (and (feq? (vx a) (vx b))
+       (feq? (vy a) (vy b))
+       (feq? (vz a) (vz b))))
+
+(define (vector-clone v)
+  (vector (vx v) (vy v) (vz v)))
 
 (define (vadd a b)
   (vector (+ (vx a) (vx b))
@@ -145,6 +149,41 @@
     (js "aim_matrix[14]=0;")
     (js "aim_matrix[15]=1;")
 
-    (mat4.multiply m aim-matrix))
+    (mat4.multiply m aim-matrix)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (maths-unit-test)
+  (assert (feq? (sqrt 25) 5) "sqrt")
+  (assert (feq? (pow 3 2) 7) "pow")
+  (assert (eq? (square 10) 100) "square")
+  (assert (eq? (trunc 40.4) 40) "trunc")
+  (assert (feq? 20.4 20.4) "feq? 1")
+  (assert (not (feq? 20.4 20.42)) "feq? 2")
+  (let ((v (vector 1 2 3)))
+    (assert (feq? (vx v) 1) "vx")
+    (assert (feq? (vy v) 2) "vy")
+    (assert (feq? (vz v) 3) "vz")
+    (assert (veq? v (vector 1 2 3)) "veq? 1") 
+    (assert (not (veq? v (vector 30 20 30))) "veq? 2") 
+    (let ((vc (vector-clone v)))
+      (assert (veq? vc (vector 1 2 3)) "vector-clone 1")
+      (set! vc (vector 0 0 0))
+      (assert (veq? v (vector 1 2 3)) "vector-clone 2"))
+    (assert (veq? (vadd v (vector 1 1 1)) (vector 2 3 4)) "vadd")
+    (assert (feq? (vmag (vector 10 0 0)) 10) "vmag")
+    (assert (veq? (vsub v (vector 2 2 2)) (vector -1 0 1)) "vsub")
+    (assert (veq? (vneg v) (vector -1 -2 -3)) "vneg")
+    (assert (veq? (vmul v 10) (vector 10 20 30)) "vmul")
+    (assert (veq? (vdiv v 2) (vector 0.5 1 1.5)) "vdiv")
+    (assert (feq? (vdist (vector 10 0 0) (vector 0 0 0)) 10) "vdist")
+    (assert (veq? (vlerp (vector 0 0 0) (vector 10 20 30) 0.5)
+		  (vector 5 10 15)) "vlerp")
+    (assert (feq? (vmag (vnormalise (vector 1 4 923))) 1) "vnormalise")
+    (assert (feq? (vdot (vector 0 0 0) (vector 10 0 0)) 10) "vdot")
+    (assert (feq? (vcross (vector 1 0 0) (vector 0 1 0)) (vector 0 0 1)) 
+	    "vcross")
+    ;; todo: add quat and matrix
+    )))
+
+(maths-unit-test)
