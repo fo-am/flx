@@ -1,4 +1,4 @@
-# Fluxus webgl 3D game engine
+# Fluxus WebGL 3D game engine
 
 A fully featured browser based game engine used for FoAM Kernow projects such as our Butterfly hunting citizen science games, Viruscraft, Penelope tablet weaving livecoding system and the Royal Society Summer exhibition Malaria games.
 
@@ -11,6 +11,10 @@ GNU Affero General Public License
 # Documentation
 
 Bit of a work in progress...
+
+## Importing models
+
+Supports OBJ and PLY. 
 
 * (time)
 * (every-frame ...)
