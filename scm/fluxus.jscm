@@ -117,7 +117,7 @@
 (define (view-transform)
   (renderer-view the-renderer))
 
-;; fudged to match canvas...
+;; returns the 2D screen coordinate of a 3D world space one
 (define (project-point p)
   (let ((ret (list (vx p) (vy p) (vz p) 1))
         (gl (renderer-gl the-renderer)))
@@ -127,6 +127,25 @@
        (list (* (+ (/ (vx ret) z) 1) gl.viewportWidth 0.5)
 	     (* (+ (/ (- 0 (vy ret)) z) 1) gl.viewportHeight 0.5)
 	     0)))))
+
+(define (ndc-coords gl v z)
+  (list
+   (* 2 (- (/ (vx v) gl.viewportWidth) 1))
+   (* -2 (- (/ (vy v) gl.viewportHeight) 1))
+   z
+   1))
+
+(define (divide-w v)
+  (vector 
+   (/ (vx v) (list-ref v 3))
+   (/ (vy v) (list-ref v 3))
+   (/ (vz v) (list-ref v 3))))
+
+;; returns the 3D line representing a screen space coordinate
+(define (unproject-point p)
+  (let ((gl (renderer-gl the-renderer))
+	(screen-to-world (minverse (renderer-world-to-screen the-renderer))))
+    (divide-w (mat4.multiplyVec4 screen-to-world (ndc-coords gl (list (vx p) (vy p)) 0)))))
 
 (define (primitive-screen-pos p)
   (project-point

@@ -122,7 +122,7 @@
      (+ (image-button-y b) 10))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; an two images, one that animates when clicked
+;; two images, one that animates when clicked
 
 (define (make-animated-button x y image-name image2-name fn) 
   (let ((image (find-image image-name image-lib))
@@ -173,6 +173,72 @@
 		     (- (min 75 (animated-button-time b)) 75)
 		     (- (min 75 (animated-button-time b)))))
   (ctx.restore))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 3d version...
+
+;; (define (make-animated-button x y px py image-name image2-name fn) 
+;;   (let ((image (with-state 
+;; 		(translate (vector x y 0))
+;; 		(scale (vmul (vector 1 4.6 1) 6))
+;; 		(texture (load-texture image-name))
+;; 		(load-primitive "models/plane.obj")))
+;; 	(image2 (with-state 
+;; 		 (translate (vector x y 0))
+;; 		 (scale (vmul (vector 1 4.6 1) 6))
+;; 		 (texture (load-texture image2-name))
+;; 		 (load-primitive "models/plane.obj"))))
+;;     (list px py image image2 fn 61 280 -1 "opening")))
+
+;; (define (animated-button-x b) (list-ref b 0))
+;; (define (animated-button-y b) (list-ref b 1))
+;; (define (animated-button-px b) (list-ref b 2))
+;; (define (animated-button-py b) (list-ref b 3))
+;; (define (animated-button-image b) (list-ref b 4))
+;; (define (animated-button-image2 b) (list-ref b 5))
+;; (define (animated-button-fn b) (list-ref b 6))
+;; (define (animated-button-width b) (list-ref b 7))
+;; (define (animated-button-height b) (list-ref b 8))
+;; (define (animated-button-time b) (list-ref b 9))
+;; (define (animated-button-modify-time b v) (list-replace b 9 v))
+;; (define (animated-button-state b) (list-ref b 10))
+;; (define (animated-button-modify-state b v) (list-replace b 10 v))
+
+;; (define (animated-button-update b m)
+;;   (set! b (animated-button-modify-time 
+;; 	   b (+ (animated-button-time b) 2)))  
+;;   (cond
+;;    ((inside-box?
+;;      canvas-mouse-x canvas-mouse-y
+;;      (- (animated-button-px b) (animated-button-width b)) 
+;;      (- (animated-button-py b) (animated-button-height b))
+;;      (* (animated-button-width b) 2) 
+;;      (* (animated-button-height b) 2))
+;;     (msg "clicked")
+;;     (if canvas-mouse-clicked
+;; 	(let ((fn (animated-button-fn b))) 
+;; 	  (set! canvas-event-occurred #t)
+;; 	  (set! canvas-mouse-clicked #f)
+;; 	  (fn m))
+;; 	m))
+;;    (else m)))
+
+;; (define (animated-button-render! b)
+;;   (with-primitive
+;;    (animated-button-image2 b)
+;;    (identity)
+;;    (translate (vector (animated-button-x b) 
+;; 		      (animated-button-y b) 0))
+
+;;    (translate (vector 0
+;; 		      (* 
+;; 		       (if (eq? (animated-button-state b) "filling")
+;; 			   (- (min 75 (animated-button-time b)) 75)
+;; 			   (- (min 75 (animated-button-time b))))
+;; 		       3)
+;; 		      0))  
+
+;;    (scale (vmul (vector 1 4.6 1) 6))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
