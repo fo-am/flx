@@ -414,3 +414,32 @@
 	      (set! popups-list (cdr popups-list)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define random-offsets (build-list 100 (lambda (_) (rndf))))
+
+(define (make-coin-stack x y image-name text count) 
+  (let ((image (find-image image-name image-lib)))
+    (list x y image text count (random 1000))))
+
+(define (coin-stack-x b) (list-ref b 0))
+(define (coin-stack-y b) (list-ref b 1))
+(define (coin-stack-image b) (list-ref b 2))
+(define (coin-stack-text b) (list-ref b 3))
+(define (coin-stack-count b) (list-ref b 4))
+(define (coin-stack-modify-count b v) (list-replace b 4 v))
+(define (coin-stack-seed b) (list-ref b 5))
+  
+(define (coin-stack-render! b)
+  (js "for (i=0; i<coin_stack_count(b); i++) {")
+  (ctx.drawImage (coin-stack-image b) 
+		 (+ (coin-stack-x b)
+		    (* 10 (- (list-ref random-offsets (modulo (+ i (coin-stack-seed b)) 100)) 
+			     0.5)))
+		 (- (coin-stack-y b) (* i 10)))
+  (js "}")  
+  (let ((m (ctx.measureText (coin-stack-text b))))
+    (ctx.fillText 
+     (coin-stack-text b) 
+     (+ (- (coin-stack-x b) (/ m.width 2)) 25) 
+     (+ (coin-stack-y b) 55))))
