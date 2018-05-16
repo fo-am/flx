@@ -70,6 +70,12 @@
 (define (vdist a b)
   (vmag (vsub a b)))
 
+(define (vdist-squared a b)
+  (let ((v (vsub a b)))
+    (+ (square (vx v))
+       (square (vy v))
+       (square (vz v)))))
+
 (define (vlerp v1 v2 t)
 	(vadd v1 (vmul (vsub v2 v1) t)))
 

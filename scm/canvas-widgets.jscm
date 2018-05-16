@@ -145,7 +145,7 @@
 (define (animated-button-update b m)
   (if (eq? (animated-button-state b) "filling")
       (set! b (animated-button-modify-time 
-	       b (+ (animated-button-time b) 0.5)))  
+	       b (+ (animated-button-time b) 2)))  
       (set! b (animated-button-modify-time 
 	       b (+ (animated-button-time b) 2))))
   (cond
@@ -391,18 +391,18 @@
 
 (define (render-popup! p)
   (let ((tb (popup-textbox p)))
-    (let ((x (- (/ screen-width 2) 400)) 
+    (let ((x (- (/ screen-width 2) 230)) 
 	  (y (- (textbox-y tb) 50))
-	  (w 800) 
+	  (w 460) 
 	  (h 130))
       (let ((grd (ctx.createLinearGradient x y (+ x w) (+ y h))))
 	(if (eq? (popup-type p) "bad")
-	    (grd.addColorStop 0 "#ff0000")
+	    (grd.addColorStop 0 "#ff7777")
 	    (grd.addColorStop 0 "#359935"))
 	(grd.addColorStop 1 "#ffffff")
 	(set! ctx.strokeStyle "#000")
 	(ctx.strokeRect x y w h)
-	(set! ctx.globalAlpha 0.5)
+	(set! ctx.globalAlpha 0.8)
 	(set! ctx.fillStyle grd)
 	(ctx.fillRect x y w h)
 	(set! ctx.globalAlpha 1)
