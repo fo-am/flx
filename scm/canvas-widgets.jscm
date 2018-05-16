@@ -14,10 +14,11 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(load "flx/scm/canvas.jscm")
+
 (define (inside-box? px py x y w h)
   (and (and (> px x) (< px (+ x w)))
        (and (> py y) (< py (+ y h)))))
-
 
 (define (draw-circle x y radius)
   (ctx.beginPath)
@@ -142,8 +143,11 @@
 (define (animated-button-modify-state b v) (list-replace b 8 v))
 
 (define (animated-button-update b m)
-  (set! b (animated-button-modify-time 
-	   b (+ (animated-button-time b) 2)))  
+  (if (eq? (animated-button-state b) "filling")
+      (set! b (animated-button-modify-time 
+	       b (+ (animated-button-time b) 0.5)))  
+      (set! b (animated-button-modify-time 
+	       b (+ (animated-button-time b) 2))))
   (cond
    ((inside-box?
      canvas-mouse-x canvas-mouse-y
@@ -377,8 +381,8 @@
 			     (make-textbox
 			      x y 
 			      (if (eq? type "bad") 
-				  "30pt Dosis" 
-				  "20pt Dosis") 
+				  "30pt Amatic" 
+				  "20pt Amatic") 
 			      55 "centre" 
 			      text-list)
 			     type

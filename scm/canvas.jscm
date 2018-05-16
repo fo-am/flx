@@ -14,8 +14,8 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define screen-width 960)
-(define screen-height 540)
+(define screen-width 0)
+(define screen-height 0)
 
 (define canvas-mouse-x 0)
 (define canvas-mouse-y 0)
@@ -34,13 +34,24 @@
 (define canvas (document.getElementById "canvas"))
 (define ctx (canvas.getContext "2d"))
 
+(define canvas-timeout-trigger (* 2 60))
+(define canvas-timeout-time 0)
+(define canvas-delta 0)
+(define canvas-time (js "new Date()"))
+
+(define (canvas-update-time)
+  ;;(set! canvas-timeout-time (+ canvas-timeout-time canvas-delta))
+  ;;(when (> timeout-time timeout-trigger)
+  ;;	(window.location.reload))
+  (set! canvas-delta (/ (- (js "new Date()") canvas-time) 1000.0))
+  (set! canvas-time (js "new Date()")))
+
 (define (set-canvas-drag-fn fn)
   (set! canvas-drag-fn fn))
 
 (define (canvas-init-defaults)
   (set! ctx.fillStyle "#000")
-  (set! ctx.font "30pt Dosis")
-  )
+  (set! ctx.font "20pt Amatic"))
 
 (define (resize-canvas canvas) 
   ;; Lookup the size the browser is displaying the canvas.
@@ -48,7 +59,9 @@
 	(displayHeight canvas.clientHeight)) 
     ;; Check if the canvas is not the same size.
     (when (or (not (eq? canvas.width displayWidth))
-	      (not (eq? canvas.height displayHeight)))
+	      (not (eq? canvas.height displayHeight))
+	      (zero? screen-width)
+	      (zero? screen-height))
 	  ;; Make the canvas the same size
 	  (set! canvas.width displayWidth)
 	  (set! canvas.height displayHeight)
@@ -135,20 +148,22 @@
      (load-image! fn finished l))
    l))
 
+(define (mousedown-handler e) (mouse-from-event canvas e "down"))
+(define (touchstart-handler e) (mouse-from-event canvas e "down"))
+(define (mousemove-handler e) (mouse-from-event canvas e "move"))
+(define (touchmove-handler e) 
+  (e.preventDefault)
+  (touch-from-event canvas e "move"))
+(define (mouseup-handler e) (mouse-from-event canvas e "up"))
+(define (DOMMouseWheel-handler e) (mouse-from-event canvas e "down"))
+(define (mousewheel-handler e) (mouse-from-event canvas e "down"))
+
 (define (canvas-setup)
-  (canvas.addEventListener
-   "mousedown" (lambda (e) (mouse-from-event canvas e "down")))
-  (canvas.addEventListener
-   "touchstart" (lambda (e) (touch-from-event canvas e "down")))
-  (canvas.addEventListener
-   "mousemove" (lambda (e) (mouse-from-event canvas e "move")))      
-  (canvas.addEventListener
-   "touchmove"
-   (lambda (e)
-     (e.preventDefault)
-     (touch-from-event canvas e "move")))      
-  (canvas.addEventListener
-   "mouseup" (lambda (e) (mouse-from-event canvas e "up")))
+  (canvas.addEventListener "mousedown" mousedown-handler)
+  (canvas.addEventListener "touchstart" touchstart-handler)
+  (canvas.addEventListener "mousemove" mousemove-handler)
+  (canvas.addEventListener "touchmove" touchmove-handler)      
+  (canvas.addEventListener "mouseup" mouseup-handler)
 ;;  (canvas.addEventListener
 ;;   "touchend" (lambda (e) (mouse-from-event canvas e "up")))
 ;;  (canvas.addEventListener

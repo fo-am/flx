@@ -244,9 +244,9 @@ ditto.comp_lambda = function(args) {
 
     // if not anon
     if (ditto.current_define!="" && ditto.current_define!="_") { 
-	if (ditto.function_desc[ditto.current_define]) {
-	    ditto.to_page("output","function "+ditto.current_define+" ("+ditto.function_desc[ditto.current_define]+") has been redefined as ("+ditto.car(args)+")");
-	}
+	//if (ditto.function_desc[ditto.current_define]) {
+	//    ditto.to_page("output","function "+ditto.current_define+" ("+ditto.function_desc[ditto.current_define]+") has been redefined as ("+ditto.car(args)+")");
+	//}
 	// record number of args
 	ditto.function_desc[ditto.current_define]=ditto.car(args);
 	ditto.current_define="";
@@ -864,6 +864,31 @@ function scheme_eval(filenames,code) {
         //console.log("loading "+filename);
         js+=ditto.load(filename);
     });
+
+    js+="\n"+ditto.compile_code(code)+"\n";
+
+    js+="    } catch (e) {\
+        console.log(e);\
+        console.log(e.stack);\
+        ditto.to_page('output', 'Error: '+e);	\
+        ditto.to_page('output', 'Error: '+e.stack);	\
+        }";
+    
+    setTimeout(js,0);
+};
+
+
+function simple_eval(code) {
+    // load and compile the syntax parser
+    var js="try { cancelAnimationFrame(crank);\n";
+
+    canvas.removeEventListener("mousedown", mousedown_handler)
+    canvas.removeEventListener("touchstart", touchstart_handler)
+    canvas.removeEventListener("mousemove", mousemove_handler)
+    canvas.removeEventListener("touchmove", touchmove_handler)      
+    canvas.removeEventListener("mouseup", mouseup_handler)
+    canvas.removeEventListener("DOMMouseScroll", canvas_zoom)
+    canvas.removeEventListener("mousewheel", canvas_zoom)
 
     js+="\n"+ditto.compile_code(code)+"\n";
 
