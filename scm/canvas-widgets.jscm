@@ -122,6 +122,57 @@
      (- (image-button-x b) (/ m.width 2)) 
      (+ (image-button-y b) 10))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-toggle-button x y image-name image-name2 text state) 
+  (let ((image (find-image image-name image-lib))
+	(image2 (find-image image-name2 image-lib)))
+    (list x y image image2 text state (/ image.width 2) (/ image.height 2))))
+
+(define (toggle-button-x b) (list-ref b 0))
+(define (toggle-button-y b) (list-ref b 1))
+(define (toggle-button-image b) (list-ref b 2))
+(define (toggle-button-image2 b) (list-ref b 3))
+(define (toggle-button-text b) (list-ref b 4))
+(define (toggle-button-state b) (list-ref b 5))
+(define (toggle-button-modify-state b v) (list-replace b 5 v))
+(define (toggle-button-width b) (list-ref b 6))
+(define (toggle-button-height b) (list-ref b 7))
+
+(define (toggle-button-update b)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (- (toggle-button-x b) (toggle-button-width b)) 
+     (- (toggle-button-y b) (toggle-button-height b))
+     (* (toggle-button-width b) 2) 
+     (* (toggle-button-height b) 2))
+    (cond (canvas-mouse-clicked
+	   (set! canvas-event-occurred #t)
+	   (set! canvas-mouse-clicked #f)
+	   (toggle-button-modify-state b (not (toggle-button-state b))))
+	  (else b)))
+   (else b)))
+
+(define (toggle-button-render! b)
+  (ctx.save)
+  (ctx.translate 
+   (toggle-button-x b)
+   (toggle-button-y b))
+  (ctx.translate 
+   (- (toggle-button-width b))
+   (- (toggle-button-height b)))
+  (ctx.drawImage (toggle-button-image b) 0 0)
+  (when (toggle-button-state b)
+	(ctx.drawImage (toggle-button-image2 b) 0 0))
+  (ctx.restore)
+  
+  (let ((m (ctx.measureText (toggle-button-text b))))
+    (ctx.fillText 
+     (toggle-button-text b) 
+     (- (toggle-button-x b) (/ m.width 2)) 
+     (- (toggle-button-y b) 30))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; two images, one that animates when clicked
 
@@ -375,14 +426,12 @@
   (set! popups-list '()))
 
 (define (fire-popup! type text-list)
-  (let ((x (if (eq? type "bad") (/ screen-width 2) 300))
-	(y (if (eq? type "bad") 300 500)))
+  (let ((x (/ screen-width 2))
+	(y 200))
     (set! popups-list (cons (make-popup 
 			     (make-textbox
 			      x y 
-			      (if (eq? type "bad") 
-				  "30pt Amatic" 
-				  "20pt Amatic") 
+			      "30pt Amatic" 
 			      55 "centre" 
 			      text-list)
 			     type
@@ -391,9 +440,9 @@
 
 (define (render-popup! p)
   (let ((tb (popup-textbox p)))
-    (let ((x (- (/ screen-width 2) 230)) 
+    (let ((x (- (/ screen-width 2) 290)) 
 	  (y (- (textbox-y tb) 50))
-	  (w 460) 
+	  (w 580) 
 	  (h 130))
       (let ((grd (ctx.createLinearGradient x y (+ x w) (+ y h))))
 	(if (eq? (popup-type p) "bad")
@@ -409,7 +458,7 @@
 	(canvas-init-defaults)
 	(textbox-render! tb)))))
 
-(define popup-lifespan 3)
+(define popup-lifespan 5)
 
 (define (render-popups!)
   (when (not (null? popups-list))

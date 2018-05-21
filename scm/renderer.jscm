@@ -152,7 +152,7 @@
 	 (frustum-far frustum) 
 	 (renderer-view r)))))
 
-(define (renderer-render r t)
+(define (renderer-render r)
   (let ((gl (renderer-gl r))
 	(hook (renderer-hook r))
 	(view-camera (mat4.create))

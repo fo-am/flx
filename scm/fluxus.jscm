@@ -459,9 +459,16 @@
 (define (debug-renderer)
   (renderer-print the-renderer))
 
+(define (set-framerate-divide! v)
+  (set! framerate-divide v))
+
+(define framerate-divide 1)
+
 (define (outer-render)
-  (set! t (+ t 0.1))
-  (set! the-renderer (renderer-render the-renderer t))
+  (set! t (+ t 1))
+  
+  (when (zero? (modulo t framerate-divide))
+	(set! the-renderer (renderer-render the-renderer)))
   
  ; (set! stat-period (- stat-period 1))            
   (when (zero? stat-period)
