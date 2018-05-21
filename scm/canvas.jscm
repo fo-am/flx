@@ -74,6 +74,7 @@
 	(resize-canvas canvas)))
 
 (define (mouse-from-event canvas e state)
+  (msg state)
   (let ((rect (canvas.getBoundingClientRect)))
     (let ((sx (/ rect.width screen-width))
           (sy (/ rect.height screen-height)))
