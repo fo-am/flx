@@ -142,10 +142,26 @@
    (/ (vz v) (list-ref v 3))))
 
 ;; returns the 3D line representing a screen space coordinate
+;; not yet working...
 (define (unproject-point p)
   (let ((gl (renderer-gl the-renderer))
 	(screen-to-world (minverse (renderer-world-to-screen the-renderer))))
     (divide-w (mat4.multiplyVec4 screen-to-world (ndc-coords gl (list (vx p) (vy p)) 0)))))
+
+;; screen point to world coordinate
+(define (unproject-point-ortho pos)
+  ;; pos is in screen pixel space
+  ;; so divide to normalise (0 - 1)
+  (let ((scr-aspect (/ screen-width screen-height))
+	(norm (vector (/ (vx pos) screen-width)
+		      (/ (vy pos) screen-height)
+		      0)))
+    ;; convert into ortho world coordinates but account for half scale
+    (let ((top (frustum-top (renderer-frustum the-renderer))))
+      (vector
+       (* (/ (- (vx pos) (/ screen-width 2)) screen-width) (* top scr-aspect 2))
+       (* (/ (- (/ screen-height 2) (vy pos)) screen-height) (* top 2)) 
+       (* (vy norm) 0.1)))))
 
 (define (primitive-screen-pos p)
   (project-point
@@ -457,6 +473,33 @@
 
 (define (print-renderer-top)
   (msg (renderer-stack-top the-renderer)))
+
+(define (ortho top)
+  (set! the-renderer 
+	(renderer-modify-frustum 
+	 the-renderer 
+	 (frustum #t top 
+		  (frustum-near (renderer-frustum the-renderer))
+		  (frustum-far (renderer-frustum the-renderer))))))  
+
+(define (persp)
+  (set! the-renderer 
+	(renderer-modify-frustum 
+	 the-renderer 
+	 (frustum #f
+		  (frustum-top frustum)
+		  (frustum-near (renderer-frustum the-renderer))
+		  (frustum-far (renderer-frustum the-renderer))))))
+
+
+(define (frustum-clip near far)
+  (set! the-renderer 
+	(renderer-modify-frustum 
+	 the-renderer 
+	 (frustum (frustum-ortho? (renderer-frustum the-renderer))
+		  (frustum-top (renderer-frustum the-renderer))
+		  near
+		  far))))
 
 (define (clear)
   (let ((canvas (document.getElementById "webgl-canvas")))

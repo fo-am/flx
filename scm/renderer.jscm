@@ -14,6 +14,12 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
+(define (frustum ortho top near far) (list ortho top near far))
+(define (frustum-ortho? f) (list-ref f 0))
+(define (frustum-top f) (list-ref f 1))
+(define (frustum-near f) (list-ref f 2))
+(define (frustum-far f) (list-ref f 3))
+
 (define (renderer gl)
   (shader-cache-add gl "main" (list "p" "n" "t" "c") vertex-shader fragment-shader)
   (list
@@ -29,7 +35,8 @@
    (scenenode 0 (state gl) 0 '())
    ()
    (vector 1 1 1)
-   45))
+   45
+   (frustum #f 20 0.1 1000.0)))
 
 (define (renderer-gl r) (list-ref r 0))
 (define (renderer-list r) (list-ref r 1))
@@ -54,6 +61,8 @@
 (define (renderer-modify-clear-colour r v) (list-replace r 11 v))
 (define (renderer-view-angle r) (list-ref r 12))
 (define (renderer-modify-view-angle r v) (list-replace r 12 v))
+(define (renderer-frustum r) (list-ref r 13))
+(define (renderer-modify-frustum r v) (list-replace r 13 v))
 
 (define (renderer-add r p)
   (renderer-modify-list r (cons p (renderer-list r))))
@@ -126,6 +135,23 @@
       #f
       (car (renderer-grab-stack r))))
 
+(define (renderer-frustum-apply gl r)
+  (let ((aspect (/ gl.viewportWidth gl.viewportHeight))
+	(frustum (renderer-frustum r)))
+    (if (frustum-ortho? frustum)
+	(mat4.ortho (* (frustum-top frustum) aspect -1) 
+		    (* (frustum-top frustum) aspect) 
+		    (- (frustum-top frustum)) (frustum-top frustum) 
+		    (frustum-near frustum) 
+		    (frustum-far frustum) 
+		    (renderer-view r))
+	(mat4.perspective 
+	 (renderer-view-angle r) 
+	 aspect
+	 (frustum-near frustum) 
+	 (frustum-far frustum) 
+	 (renderer-view r)))))
+
 (define (renderer-render r t)
   (let ((gl (renderer-gl r))
 	(hook (renderer-hook r))
@@ -139,11 +165,7 @@
 		   (list-ref (renderer-clear-colour r) 3))
     (gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))
 
-
-    (mat4.perspective 
-     (renderer-view-angle r) 
-     (/ gl.viewportWidth gl.viewportHeight) 0.1 1000.0
-     (renderer-view r))
+    (renderer-frustum-apply gl r)
     
     (gl.enable gl.BLEND)
     (gl.blendFunc gl.SRC_ALPHA gl.ONE_MINUS_SRC_ALPHA)
