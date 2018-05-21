@@ -74,7 +74,6 @@
 	(resize-canvas canvas)))
 
 (define (mouse-from-event canvas e state)
-  (msg state)
   (let ((rect (canvas.getBoundingClientRect)))
     (let ((sx (/ rect.width screen-width))
           (sy (/ rect.height screen-height)))
@@ -150,7 +149,7 @@
    l))
 
 (define (mousedown-handler e) (mouse-from-event canvas e "down"))
-(define (touchstart-handler e) (mouse-from-event canvas e "down"))
+(define (touchstart-handler e) (touch-from-event canvas e "down"))
 (define (mousemove-handler e) (mouse-from-event canvas e "move"))
 (define (touchmove-handler e) 
   (e.preventDefault)
