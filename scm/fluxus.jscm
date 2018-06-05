@@ -465,17 +465,15 @@
 (define framerate-divide 1)
 
 (define (outer-render)
-  (set! t (+ t 1))
-  
+  (set! t (+ t 1))  
   (when (zero? (modulo t framerate-divide))
-	(set! the-renderer (renderer-render the-renderer)))
-  
- ; (set! stat-period (- stat-period 1))            
-  (when (zero? stat-period)
-	(set! stat-period 60)
-	(set! current-fps (/ (* stat-period 1000) (- (Date.now) last-stat)))
-	(console.log (+ "FPS: " (trunc current-fps)))
-	(set! last-stat (Date.now)))
+	(set! the-renderer (renderer-render the-renderer))
+	;; (set! stat-period (- stat-period 1))            
+	(when (zero? stat-period)
+	      (set! stat-period 60)
+	      (set! current-fps (/ (* stat-period 1000) (- (Date.now) last-stat)))
+	      (console.log (+ "FPS: " (trunc current-fps)))
+	      (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 
 (define (print-renderer-top)
@@ -522,7 +520,7 @@
       (gl.disable gl.CULL_FACE)
       ;; make sure the default texture is loaded
       (texture (load-texture "white.png"))
-      ))))
+      )))
 
 (define (resize-glcanvas canvas) 
   ;; Lookup the size the browser is displaying the canvas.
@@ -537,6 +535,14 @@
 	  (let ((gl (canvas.getContext "experimental-webgl")))
 	    (set! gl.viewportWidth canvas.width)
 	    (set! gl.viewportHeight canvas.height)))))
+
+(define (size-glcanvas canvas displayWidth displayHeight) 
+  ;; Make the canvas the same size
+  (set! canvas.width displayWidth)
+  (set! canvas.height displayHeight)
+  (let ((gl (canvas.getContext "experimental-webgl")))
+    (set! gl.viewportWidth canvas.width)
+    (set! gl.viewportHeight canvas.height)))
 
 
 (clear)

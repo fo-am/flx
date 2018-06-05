@@ -122,6 +122,40 @@
      (- (image-button-x b) (/ m.width 2)) 
      (+ (image-button-y b) 10))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-rect-button x y w h fn) 
+  (list x y w h fn))
+
+(define (rect-button-x b) (list-ref b 0))
+(define (rect-button-y b) (list-ref b 1))
+(define (rect-button-width b) (list-ref b 2))
+(define (rect-button-height b) (list-ref b 3))
+(define (rect-button-fn b) (list-ref b 4))
+
+(define (rect-button-update b m)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (rect-button-x b)
+     (rect-button-y b)
+     (rect-button-width b) 
+     (rect-button-height b))
+    (if canvas-mouse-clicked
+	(let ((fn (rect-button-fn b))) 
+	  (set! canvas-event-occurred #t)
+	  (set! canvas-mouse-clicked #f)
+	  (fn m))
+	m))
+   (else m)))
+  
+(define (rect-button-render! b)
+  (ctx.strokeRect
+   (rect-button-x b)
+   (rect-button-y b)
+   (rect-button-width b)
+   (rect-button-height b)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (make-toggle-button x y image-name image-name2 text state) 
