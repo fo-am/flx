@@ -51,7 +51,7 @@
 
 (define (canvas-init-defaults)
   (set! ctx.fillStyle "#000")
-  (set! ctx.font "20pt Amatic"))
+  (set! ctx.font "30pt Amatic"))
 
 (define (resize-canvas canvas) 
   ;; Lookup the size the browser is displaying the canvas.
