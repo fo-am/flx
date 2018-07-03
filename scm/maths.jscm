@@ -25,6 +25,7 @@
 (define (square x) (* x x))
 (define (trunc x) (js "~~x"))
 (define (feq? a b) (< (Math.abs (- a b)) Number.EPSILON))
+(define (abs x) (Math.abs x))
 
 (define (vector x y z) (list x y z))
 

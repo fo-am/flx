@@ -49,10 +49,13 @@
 	   (set! meshes-load-outstanding (- meshes-load-outstanding 1))
 	   (set! mesh-cache (cons (list name data) mesh-cache)))))))))
 
+(define (deep-copy a)
+  ($.extend #t (js "{}") a))
+
 (define (mesh-cache-search name)
   (let ((mesh (assoc name mesh-cache)))
     (cond 
-     (mesh (cadr mesh)) ;; deep copy!?
+     (mesh (deep-copy (cadr mesh)));; deep copy!?
      (else (msg (+ "mesh not loaded into cache in preload: " name))
 	   (let ((type (substring name (- (length name) 3) (length name))))
 	     (if (eq? type "obj")

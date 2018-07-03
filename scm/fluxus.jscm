@@ -360,12 +360,13 @@
 		       (renderer-scenegraph the-renderer) 
 		       id))))
 
-;(define (apply-transform)
-;  (let ((tx (get-transform)))
-;    (pdata-map!
-;     (lambda (p)
-;       (vtransform tx p))
-;     "p")))
+(define (apply-transform!)
+  (let ((tx (get-transform)))
+    (pdata-map!
+     (lambda (p)
+       (mtransform tx p))
+     "p"))
+  (identity))
 
 (define (build-cube)
   (add-to-scenegraph! (list-ref (renderer-prefab the-renderer) 0)))
