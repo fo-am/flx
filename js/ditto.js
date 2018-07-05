@@ -795,8 +795,6 @@ function init(filenames) {
             js+=ditto.load(filename);
         });
 
-	js+="crank()";
-
         try {
             //eval(js);
             setTimeout(js,0);
@@ -826,7 +824,6 @@ function init_static(syntax,source) {
         }
 
         var js=ditto.compile_code(source);
-	js+="; crank();";
 
         try {
             //eval(js);
