@@ -27,6 +27,12 @@
 (define (feq? a b) (< (Math.abs (- a b)) Number.EPSILON))
 (define (abs x) (Math.abs x))
 
+(define (clamp v min max)
+  (cond
+   ((< v min) min)
+   ((> v max) max)   
+   (else v)))
+
 (define (vector x y z) (list x y z))
 
 (define (vx v) (list-ref v 0))
