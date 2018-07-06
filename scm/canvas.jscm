@@ -49,9 +49,12 @@
 (define (set-canvas-drag-fn fn)
   (set! canvas-drag-fn fn))
 
+(define canvas-font "Arial")
+(define (set-font! f) (set! canvas-font f))
+
 (define (canvas-init-defaults)
   (set! ctx.fillStyle "#000")
-  (set! ctx.font "30pt Amatic"))
+  (set! ctx.font (string-append "30pt " canvas-font)))
 
 (define (resize-canvas canvas) 
   ;; Lookup the size the browser is displaying the canvas.

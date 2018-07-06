@@ -75,6 +75,39 @@
    (mesh-button-prim b)
    (rotate (vector 1 1 0.5))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-text-button pos size text fn) 
+  (list pos text size fn text))
+
+(define (text-button-pos b) (list-ref b 0))
+(define (text-button-text b) (list-ref b 1))
+(define (text-button-size b) (list-ref b 2))
+(define (text-button-fn b) (list-ref b 3))
+
+(define (text-button-update b m)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (- (vx (text-button-pos b)) (text-button-size b)) 
+     (- (vy (text-button-pos b)) (text-button-size b))
+     (+ (vx (text-button-pos b)) (text-button-size b)) 
+     (+ (vy (text-button-pos b)) (text-button-size b)))
+    (if canvas-mouse-clicked
+	(let ((fn (text-button-fn b))) 
+	  (set! canvas-event-occurred #t)
+	  (set! canvas-mouse-clicked #f)
+	  (fn m))
+	m))
+   (else m)))
+
+(define (text-button-render! b)
+  (let ((m (ctx.measureText (text-button-text b))))
+    (ctx.fillText 
+     (text-button-text b) 
+     (- (vx (text-button-pos b)) (/ m.width 2)) 
+     (+ (vy (text-button-pos b)) 20))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (make-image-button x y image-name text anim fn) 
@@ -350,7 +383,7 @@
 (define (textbox-text t) (list-ref t 5))
 
 (define (textbox-render! s)
-  (set! ctx.font (textbox-style s))
+  (set! ctx.font (string-append (textbox-style s) " " canvas-font))
   (index-for-each
    (lambda (i text)
      (let ((m (ctx.measureText text)))
