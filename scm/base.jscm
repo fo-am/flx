@@ -45,6 +45,8 @@
 (define (equal? a b) (eq? a b))
 (define (floor n) (Math.floor n))
 (define (fmod a b) (js "Number((a - (Math.floor(a / b) * b)).toPrecision(8));"))
+(define (fabs x) (Math.abs x))
+(define (string->number x) (parseFloat x))
 
 (define (random n)
   (Math.floor (* (Math.random) n)))
@@ -76,14 +78,12 @@
 ;;     ((null? l) v)
 ;;     (else (foldl fn (fn (car l) v) (cdr l))))))
 
-
 ;; replaced by underlying iterative version
 ;; (define (list-contains? l v)
 ;;   (cond
 ;;     ((null? l) #f)
 ;;     ((eq? (car l) v) #t)
 ;;     (else (list-contains? (cdr l) v))))
-
 
 (define map
   (lambda (fn l)
@@ -104,7 +104,10 @@
     (foldl
      (lambda (i r)
        (if (fn i) (append r (list i)) r))
-     () l)))
+     '() l)))
+
+(define (list-remove l i)
+  (filter (lambda (a) (not (eq? a i))) l))
 
 (define for-each
   (lambda (fn l)

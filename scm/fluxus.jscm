@@ -507,6 +507,7 @@
 		  near
 		  far))))
 
+
 (define (clear)
   (let ((canvas (document.getElementById "webgl-canvas")))
     (let ((gl (canvas.getContext "experimental-webgl")))
@@ -514,7 +515,7 @@
       (set! gl.viewportHeight canvas.height)
       (set! the-renderer (renderer gl))
       ;; set up camera transform
-      (mat4.translate (renderer-camera the-renderer) (list 0 0 -38))
+      (mat4.translate (renderer-camera the-renderer) (list 0 0 0))
       (set! the-renderer (renderer-build-prefab the-renderer))
       (gl.clearColor 0.0 0.0 0.0 1.0)
       (gl.enable gl.DEPTH_TEST)

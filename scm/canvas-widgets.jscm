@@ -52,8 +52,8 @@
      canvas-mouse-x canvas-mouse-y
      (- (vx (mesh-button-canvas-pos b)) (mesh-button-size b)) 
      (- (vy (mesh-button-canvas-pos b)) (mesh-button-size b))
-     (+ (vx (mesh-button-canvas-pos b)) (mesh-button-size b)) 
-     (+ (vy (mesh-button-canvas-pos b)) (mesh-button-size b)))
+     (* (mesh-button-size b) 2)
+     (* (mesh-button-size b) 2))
     (if canvas-mouse-clicked
 	(let ((fn (mesh-button-fn b))) 
 	  (set! canvas-event-occurred #t)
@@ -91,8 +91,8 @@
      canvas-mouse-x canvas-mouse-y
      (- (vx (text-button-pos b)) (text-button-size b)) 
      (- (vy (text-button-pos b)) (text-button-size b))
-     (+ (vx (text-button-pos b)) (text-button-size b)) 
-     (+ (vy (text-button-pos b)) (text-button-size b)))
+     (* (text-button-size b) 2) 
+     (* (text-button-size b) 2))
     (if canvas-mouse-clicked
 	(let ((fn (text-button-fn b))) 
 	  (set! canvas-event-occurred #t)
