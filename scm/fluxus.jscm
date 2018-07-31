@@ -108,6 +108,9 @@
 (define (set-camera-angle a)
   (set! the-renderer (renderer-modify-view-angle the-renderer a)))
 
+(define (get-camera-angle a)
+  (renderer-view-angle the-renderer))
+
 ;;(define (vtransform m v)
 ;; (mat4.multiplyVec3 m v))
 

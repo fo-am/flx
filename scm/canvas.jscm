@@ -53,7 +53,7 @@
 (define (set-font! f) (set! canvas-font f))
 
 (define (canvas-init-defaults)
-  (set! ctx.fillStyle "#000")
+  ;;(set! ctx.fillStyle "#000")
   (set! ctx.font (string-append "30pt " canvas-font)))
 
 (define (resize-canvas canvas) 

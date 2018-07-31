@@ -16,9 +16,9 @@
 
 (js "var sin=Math.sin")
 (js "var cos=Math.cos")
+(js "var tan=Math.tan")
 (js "var pi = Math.PI")
 (js "var two_pi = Math.PI*2")
-
 
 (define (sqrt a) (Math.sqrt a))
 (define (pow a b) (Math.pow a b))

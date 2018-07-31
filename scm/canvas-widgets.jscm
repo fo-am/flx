@@ -382,6 +382,10 @@
 (define (textbox-just t) (list-ref t 4))
 (define (textbox-text t) (list-ref t 5))
 
+(define (centre-text ctx text x y)
+  (let ((m (ctx.measureText text)))
+    (ctx.fillText text (- x (/ m.width 2)) y)))
+
 (define (textbox-render! s)
   (set! ctx.font (string-append (textbox-style s) " " canvas-font))
   (index-for-each
