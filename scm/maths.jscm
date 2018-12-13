@@ -104,6 +104,10 @@
     (let ((axis (vmul (vnormalise axis) (sin (/ angle 2)))))
       (quat (vx axis) (vy axis) (vz axis) (cos (/ angle 2))))))
 
+(define (qaxisanglerad axis angle)
+  (let ((axis (vmul (vnormalise axis) (sin (/ angle 2)))))
+    (quat (vx axis) (vy axis) (vz axis) (cos (/ angle 2)))))
+
 (define (qnormalise q)  (quat4.normalise q))
 (define (qmul a b) (quat4.multiply a b))
 (define (q->m q) (quat4.toMat4 q))
