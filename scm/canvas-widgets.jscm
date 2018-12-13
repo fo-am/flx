@@ -14,10 +14,11 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(load "flx/scm/canvas.jscm")
+
 (define (inside-box? px py x y w h)
   (and (and (> px x) (< px (+ x w)))
        (and (> py y) (< py (+ y h)))))
-
 
 (define (draw-circle x y radius)
   (ctx.beginPath)
@@ -51,8 +52,8 @@
      canvas-mouse-x canvas-mouse-y
      (- (vx (mesh-button-canvas-pos b)) (mesh-button-size b)) 
      (- (vy (mesh-button-canvas-pos b)) (mesh-button-size b))
-     (+ (vx (mesh-button-canvas-pos b)) (mesh-button-size b)) 
-     (+ (vy (mesh-button-canvas-pos b)) (mesh-button-size b)))
+     (* (mesh-button-size b) 2)
+     (* (mesh-button-size b) 2))
     (if canvas-mouse-clicked
 	(let ((fn (mesh-button-fn b))) 
 	  (set! canvas-event-occurred #t)
@@ -74,19 +75,53 @@
    (mesh-button-prim b)
    (rotate (vector 1 1 0.5))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-text-button pos size text fn) 
+  (list pos text size fn text))
+
+(define (text-button-pos b) (list-ref b 0))
+(define (text-button-text b) (list-ref b 1))
+(define (text-button-size b) (list-ref b 2))
+(define (text-button-fn b) (list-ref b 3))
+
+(define (text-button-update b m)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (- (vx (text-button-pos b)) (text-button-size b)) 
+     (- (vy (text-button-pos b)) (text-button-size b))
+     (* (text-button-size b) 2) 
+     (* (text-button-size b) 2))
+    (if canvas-mouse-clicked
+	(let ((fn (text-button-fn b))) 
+	  (set! canvas-event-occurred #t)
+	  (set! canvas-mouse-clicked #f)
+	  (fn m))
+	m))
+   (else m)))
+
+(define (text-button-render! b)
+  (let ((m (ctx.measureText (text-button-text b))))
+    (ctx.fillText 
+     (text-button-text b) 
+     (- (vx (text-button-pos b)) (/ m.width 2)) 
+     (+ (vy (text-button-pos b)) 20))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (make-image-button x y image-name text fn) 
+(define (make-image-button x y image-name text anim fn) 
   (let ((image (find-image image-name image-lib)))
-    (list x y image text fn (/ image.width 2) (/ image.height 2))))
+    (list x y image text anim fn (/ image.width 2) (/ image.height 2))))
 
 (define (image-button-x b) (list-ref b 0))
 (define (image-button-y b) (list-ref b 1))
 (define (image-button-image b) (list-ref b 2))
 (define (image-button-text b) (list-ref b 3))
-(define (image-button-fn b) (list-ref b 4))
-(define (image-button-width b) (list-ref b 5))
-(define (image-button-height b) (list-ref b 6))
+(define (image-button-anim b) (list-ref b 4))
+(define (image-button-fn b) (list-ref b 5))
+(define (image-button-width b) (list-ref b 6))
+(define (image-button-height b) (list-ref b 7))
 
 (define (image-button-update b m)
   (cond
@@ -109,9 +144,17 @@
   (ctx.translate 
    (image-button-x b)
    (image-button-y b))
+  (when (eq? (image-button-anim b) "twist")
+	(ctx.rotate 
+	 (* 0.25 (sin (* (+ (modulo (image-button-x b) 109) (time)) 3)))))
+  (when (eq? (image-button-anim b) "zoom")
+	(let ((sc (* 0.1 (sin (* (modulo (image-button-x b) 23) 0.5 (time))))))
+	  (ctx.scale (+ 1 sc) (+ 1 sc))))
+  
   (ctx.translate 
    (- (image-button-width b))
    (- (image-button-height b)))
+
   (ctx.drawImage (image-button-image b) 0 0)
   (ctx.restore)
   
@@ -121,8 +164,93 @@
      (- (image-button-x b) (/ m.width 2)) 
      (+ (image-button-y b) 10))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-rect-button x y w h fn) 
+  (list x y w h fn))
+
+(define (rect-button-x b) (list-ref b 0))
+(define (rect-button-y b) (list-ref b 1))
+(define (rect-button-width b) (list-ref b 2))
+(define (rect-button-height b) (list-ref b 3))
+(define (rect-button-fn b) (list-ref b 4))
+
+(define (rect-button-update b m)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (rect-button-x b)
+     (rect-button-y b)
+     (rect-button-width b) 
+     (rect-button-height b))
+    (if canvas-mouse-clicked
+	(let ((fn (rect-button-fn b))) 
+	  (set! canvas-event-occurred #t)
+	  (set! canvas-mouse-clicked #f)
+	  (fn m))
+	m))
+   (else m)))
+  
+(define (rect-button-render! b)
+  (ctx.strokeRect
+   (rect-button-x b)
+   (rect-button-y b)
+   (rect-button-width b)
+   (rect-button-height b)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-toggle-button x y image-name image-name2 text state) 
+  (let ((image (find-image image-name image-lib))
+	(image2 (find-image image-name2 image-lib)))
+    (list x y image image2 text state (/ image.width 2) (/ image.height 2))))
+
+(define (toggle-button-x b) (list-ref b 0))
+(define (toggle-button-y b) (list-ref b 1))
+(define (toggle-button-image b) (list-ref b 2))
+(define (toggle-button-image2 b) (list-ref b 3))
+(define (toggle-button-text b) (list-ref b 4))
+(define (toggle-button-state b) (list-ref b 5))
+(define (toggle-button-modify-state b v) (list-replace b 5 v))
+(define (toggle-button-width b) (list-ref b 6))
+(define (toggle-button-height b) (list-ref b 7))
+
+(define (toggle-button-update b)
+  (cond
+   ((inside-box?
+     canvas-mouse-x canvas-mouse-y
+     (- (toggle-button-x b) (toggle-button-width b)) 
+     (- (toggle-button-y b) (toggle-button-height b))
+     (* (toggle-button-width b) 2) 
+     (* (toggle-button-height b) 2))
+    (cond (canvas-mouse-clicked
+	   (set! canvas-event-occurred #t)
+	   (set! canvas-mouse-clicked #f)
+	   (toggle-button-modify-state b (not (toggle-button-state b))))
+	  (else b)))
+   (else b)))
+
+(define (toggle-button-render! b)
+  (ctx.save)
+  (ctx.translate 
+   (toggle-button-x b)
+   (toggle-button-y b))
+  (ctx.translate 
+   (- (toggle-button-width b))
+   (- (toggle-button-height b)))
+  (ctx.drawImage (toggle-button-image b) 0 0)
+  (when (toggle-button-state b)
+	(ctx.drawImage (toggle-button-image2 b) 0 0))
+  (ctx.restore)
+  
+  (let ((m (ctx.measureText (toggle-button-text b))))
+    (ctx.fillText 
+     (toggle-button-text b) 
+     (- (toggle-button-x b) (/ m.width 2)) 
+     (- (toggle-button-y b) 30))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; an two images, one that animates when clicked
+;; two images, one that animates when clicked
 
 (define (make-animated-button x y image-name image2-name fn) 
   (let ((image (find-image image-name image-lib))
@@ -142,8 +270,11 @@
 (define (animated-button-modify-state b v) (list-replace b 8 v))
 
 (define (animated-button-update b m)
-  (set! b (animated-button-modify-time 
-	   b (+ (animated-button-time b) 2)))  
+  (if (eq? (animated-button-state b) "filling")
+      (set! b (animated-button-modify-time 
+	       b (+ (animated-button-time b) 2)))  
+      (set! b (animated-button-modify-time 
+	       b (+ (animated-button-time b) 2))))
   (cond
    ((inside-box?
      canvas-mouse-x canvas-mouse-y
@@ -175,6 +306,72 @@
   (ctx.restore))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 3d version...
+
+;; (define (make-animated-button x y px py image-name image2-name fn) 
+;;   (let ((image (with-state 
+;; 		(translate (vector x y 0))
+;; 		(scale (vmul (vector 1 4.6 1) 6))
+;; 		(texture (load-texture image-name))
+;; 		(load-primitive "models/plane.obj")))
+;; 	(image2 (with-state 
+;; 		 (translate (vector x y 0))
+;; 		 (scale (vmul (vector 1 4.6 1) 6))
+;; 		 (texture (load-texture image2-name))
+;; 		 (load-primitive "models/plane.obj"))))
+;;     (list px py image image2 fn 61 280 -1 "opening")))
+
+;; (define (animated-button-x b) (list-ref b 0))
+;; (define (animated-button-y b) (list-ref b 1))
+;; (define (animated-button-px b) (list-ref b 2))
+;; (define (animated-button-py b) (list-ref b 3))
+;; (define (animated-button-image b) (list-ref b 4))
+;; (define (animated-button-image2 b) (list-ref b 5))
+;; (define (animated-button-fn b) (list-ref b 6))
+;; (define (animated-button-width b) (list-ref b 7))
+;; (define (animated-button-height b) (list-ref b 8))
+;; (define (animated-button-time b) (list-ref b 9))
+;; (define (animated-button-modify-time b v) (list-replace b 9 v))
+;; (define (animated-button-state b) (list-ref b 10))
+;; (define (animated-button-modify-state b v) (list-replace b 10 v))
+
+;; (define (animated-button-update b m)
+;;   (set! b (animated-button-modify-time 
+;; 	   b (+ (animated-button-time b) 2)))  
+;;   (cond
+;;    ((inside-box?
+;;      canvas-mouse-x canvas-mouse-y
+;;      (- (animated-button-px b) (animated-button-width b)) 
+;;      (- (animated-button-py b) (animated-button-height b))
+;;      (* (animated-button-width b) 2) 
+;;      (* (animated-button-height b) 2))
+;;     (msg "clicked")
+;;     (if canvas-mouse-clicked
+;; 	(let ((fn (animated-button-fn b))) 
+;; 	  (set! canvas-event-occurred #t)
+;; 	  (set! canvas-mouse-clicked #f)
+;; 	  (fn m))
+;; 	m))
+;;    (else m)))
+
+;; (define (animated-button-render! b)
+;;   (with-primitive
+;;    (animated-button-image2 b)
+;;    (identity)
+;;    (translate (vector (animated-button-x b) 
+;; 		      (animated-button-y b) 0))
+
+;;    (translate (vector 0
+;; 		      (* 
+;; 		       (if (eq? (animated-button-state b) "filling")
+;; 			   (- (min 75 (animated-button-time b)) 75)
+;; 			   (- (min 75 (animated-button-time b))))
+;; 		       3)
+;; 		      0))  
+
+;;    (scale (vmul (vector 1 4.6 1) 6))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (make-textbox x y style gap just text) (list x y style gap just text))
 
@@ -185,8 +382,12 @@
 (define (textbox-just t) (list-ref t 4))
 (define (textbox-text t) (list-ref t 5))
 
+(define (centre-text ctx text x y)
+  (let ((m (ctx.measureText text)))
+    (ctx.fillText text (- x (/ m.width 2)) y)))
+
 (define (textbox-render! s)
-  (set! ctx.font (textbox-style s))
+  (set! ctx.font (string-append (textbox-style s) " " canvas-font))
   (index-for-each
    (lambda (i text)
      (let ((m (ctx.measureText text)))
@@ -249,9 +450,6 @@
     (set! ctx.globalAlpha 1)
     (canvas-init-defaults)))
 
-(define (clamp l u v)
-  (if (< v l) l (if (> v u) u v)))
-
 (define (make-progress-bar x y w h text style p) (list x y w h text style p))
 
 (define (progress-bar-x w) (list-ref w 0))
@@ -276,13 +474,13 @@
     (set! ctx.fillStyle grd)
     (ctx.fillRect (progress-bar-x w) (progress-bar-y w) 
 		  (* (progress-bar-w w)
-		     (/ (clamp 0 100 (progress-bar-p w)) 100))
+		     (/ (clamp (progress-bar-p w) 0 100) 100))
 		  (progress-bar-h w))
     (set! ctx.globalAlpha 1)
     (set! ctx.font (progress-bar-style w))
     (set! ctx.fillStyle "#000")
     (let ((txt (string-append (progress-bar-text w) " " 
-			      (clamp 0 100 (floor (progress-bar-p w))) "%")))
+			      (clamp (floor (progress-bar-p w)) 0 100) "%")))
       (let ((m (ctx.measureText txt)))
 	(ctx.fillText 
 	 txt 
@@ -305,14 +503,12 @@
   (set! popups-list '()))
 
 (define (fire-popup! type text-list)
-  (let ((x (if (eq? type "bad") (/ screen-width 2) 300))
-	(y (if (eq? type "bad") 300 500)))
+  (let ((x (/ screen-width 2))
+	(y 200))
     (set! popups-list (cons (make-popup 
 			     (make-textbox
 			      x y 
-			      (if (eq? type "bad") 
-				  "30pt Dosis" 
-				  "20pt Dosis") 
+			      "30pt Amatic" 
 			      55 "centre" 
 			      text-list)
 			     type
@@ -321,25 +517,25 @@
 
 (define (render-popup! p)
   (let ((tb (popup-textbox p)))
-    (let ((x (- (/ screen-width 2) 400)) 
+    (let ((x (- (/ screen-width 2) 290)) 
 	  (y (- (textbox-y tb) 50))
-	  (w 800) 
+	  (w 580) 
 	  (h 130))
       (let ((grd (ctx.createLinearGradient x y (+ x w) (+ y h))))
 	(if (eq? (popup-type p) "bad")
-	    (grd.addColorStop 0 "#ff0000")
+	    (grd.addColorStop 0 "#ff7777")
 	    (grd.addColorStop 0 "#359935"))
 	(grd.addColorStop 1 "#ffffff")
 	(set! ctx.strokeStyle "#000")
 	(ctx.strokeRect x y w h)
-	(set! ctx.globalAlpha 0.5)
+	(set! ctx.globalAlpha 0.8)
 	(set! ctx.fillStyle grd)
 	(ctx.fillRect x y w h)
 	(set! ctx.globalAlpha 1)
 	(canvas-init-defaults)
 	(textbox-render! tb)))))
 
-(define popup-lifespan 3)
+(define popup-lifespan 5)
 
 (define (render-popups!)
   (when (not (null? popups-list))
@@ -348,3 +544,32 @@
 	      (set! popups-list (cdr popups-list)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define random-offsets (build-list 100 (lambda (_) (rndf))))
+
+(define (make-coin-stack x y image-name text count) 
+  (let ((image (find-image image-name image-lib)))
+    (list x y image text count (random 1000))))
+
+(define (coin-stack-x b) (list-ref b 0))
+(define (coin-stack-y b) (list-ref b 1))
+(define (coin-stack-image b) (list-ref b 2))
+(define (coin-stack-text b) (list-ref b 3))
+(define (coin-stack-count b) (list-ref b 4))
+(define (coin-stack-modify-count b v) (list-replace b 4 v))
+(define (coin-stack-seed b) (list-ref b 5))
+  
+(define (coin-stack-render! b)
+  (js "for (i=0; i<coin_stack_count(b); i++) {")
+  (ctx.drawImage (coin-stack-image b) 
+		 (+ (coin-stack-x b)
+		    (* 10 (- (list-ref random-offsets (modulo (+ i (coin-stack-seed b)) 100)) 
+			     0.5)))
+		 (- (coin-stack-y b) (* i 10)))
+  (js "}")  
+  (let ((m (ctx.measureText (coin-stack-text b))))
+    (ctx.fillText 
+     (coin-stack-text b) 
+     (+ (- (coin-stack-x b) (/ m.width 2)) 25) 
+     (+ (coin-stack-y b) 75))))

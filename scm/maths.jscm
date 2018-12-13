@@ -16,15 +16,22 @@
 
 (js "var sin=Math.sin")
 (js "var cos=Math.cos")
+(js "var tan=Math.tan")
 (js "var pi = Math.PI")
 (js "var two_pi = Math.PI*2")
-
 
 (define (sqrt a) (Math.sqrt a))
 (define (pow a b) (Math.pow a b))
 (define (square x) (* x x))
 (define (trunc x) (js "~~x"))
 (define (feq? a b) (< (Math.abs (- a b)) Number.EPSILON))
+(define (abs x) (Math.abs x))
+
+(define (clamp v min max)
+  (cond
+   ((< v min) min)
+   ((> v max) max)   
+   (else v)))
 
 (define (vector x y z) (list x y z))
 
@@ -69,6 +76,12 @@
 
 (define (vdist a b)
   (vmag (vsub a b)))
+
+(define (vdist-squared a b)
+  (let ((v (vsub a b)))
+    (+ (square (vx v))
+       (square (vy v))
+       (square (vz v)))))
 
 (define (vlerp v1 v2 t)
 	(vadd v1 (vmul (vsub v2 v1) t)))

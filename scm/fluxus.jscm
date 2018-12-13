@@ -108,6 +108,9 @@
 (define (set-camera-angle a)
   (set! the-renderer (renderer-modify-view-angle the-renderer a)))
 
+(define (get-camera-angle a)
+  (renderer-view-angle the-renderer))
+
 ;;(define (vtransform m v)
 ;; (mat4.multiplyVec3 m v))
 
@@ -117,7 +120,7 @@
 (define (view-transform)
   (renderer-view the-renderer))
 
-;; fudged to match canvas...
+;; returns the 2D screen coordinate of a 3D world space one
 (define (project-point p)
   (let ((ret (list (vx p) (vy p) (vz p) 1))
         (gl (renderer-gl the-renderer)))
@@ -127,6 +130,41 @@
        (list (* (+ (/ (vx ret) z) 1) gl.viewportWidth 0.5)
 	     (* (+ (/ (- 0 (vy ret)) z) 1) gl.viewportHeight 0.5)
 	     0)))))
+
+(define (ndc-coords gl v z)
+  (list
+   (* 2 (- (/ (vx v) gl.viewportWidth) 1))
+   (* -2 (- (/ (vy v) gl.viewportHeight) 1))
+   z
+   1))
+
+(define (divide-w v)
+  (vector 
+   (/ (vx v) (list-ref v 3))
+   (/ (vy v) (list-ref v 3))
+   (/ (vz v) (list-ref v 3))))
+
+;; returns the 3D line representing a screen space coordinate
+;; not yet working...
+(define (unproject-point p)
+  (let ((gl (renderer-gl the-renderer))
+	(screen-to-world (minverse (renderer-world-to-screen the-renderer))))
+    (divide-w (mat4.multiplyVec4 screen-to-world (ndc-coords gl (list (vx p) (vy p)) 0)))))
+
+;; screen point to world coordinate
+(define (unproject-point-ortho pos)
+  ;; pos is in screen pixel space
+  ;; so divide to normalise (0 - 1)
+  (let ((scr-aspect (/ screen-width screen-height))
+	(norm (vector (/ (vx pos) screen-width)
+		      (/ (vy pos) screen-height)
+		      0)))
+    ;; convert into ortho world coordinates but account for half scale
+    (let ((top (frustum-top (renderer-frustum the-renderer))))
+      (vector
+       (* (/ (- (vx pos) (/ screen-width 2)) screen-width) (* top scr-aspect 2))
+       (* (/ (- (/ screen-height 2) (vy pos)) screen-height) (* top 2)) 
+       (* (vy norm) 0.1)))))
 
 (define (primitive-screen-pos p)
   (project-point
@@ -325,12 +363,13 @@
 		       (renderer-scenegraph the-renderer) 
 		       id))))
 
-;(define (apply-transform)
-;  (let ((tx (get-transform)))
-;    (pdata-map!
-;     (lambda (p)
-;       (vtransform tx p))
-;     "p")))
+(define (apply-transform!)
+  (let ((tx (get-transform)))
+    (pdata-map!
+     (lambda (p)
+       (mtransform tx p))
+     "p"))
+  (identity))
 
 (define (build-cube)
   (add-to-scenegraph! (list-ref (renderer-prefab the-renderer) 0)))
@@ -424,20 +463,53 @@
 (define (debug-renderer)
   (renderer-print the-renderer))
 
+(define (set-framerate-divide! v)
+  (set! framerate-divide v))
+
+(define framerate-divide 1)
+
 (define (outer-render)
-  (set! t (+ t 0.1))
-  (set! the-renderer (renderer-render the-renderer t))
-  
- ; (set! stat-period (- stat-period 1))            
-  (when (zero? stat-period)
-	(set! stat-period 60)
-	(set! current-fps (/ (* stat-period 1000) (- (Date.now) last-stat)))
-	(console.log (+ "FPS: " (trunc current-fps)))
-	(set! last-stat (Date.now)))
+  (set! t (+ t 1))  
+  (when (zero? (modulo t framerate-divide))
+	(set! the-renderer (renderer-render the-renderer))
+	;; (set! stat-period (- stat-period 1))            
+	(when (zero? stat-period)
+	      (set! stat-period 60)
+	      (set! current-fps (/ (* stat-period 1000) (- (Date.now) last-stat)))
+	      (console.log (+ "FPS: " (trunc current-fps)))
+	      (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 
 (define (print-renderer-top)
   (msg (renderer-stack-top the-renderer)))
+
+(define (ortho top)
+  (set! the-renderer 
+	(renderer-modify-frustum 
+	 the-renderer 
+	 (frustum #t top 
+		  (frustum-near (renderer-frustum the-renderer))
+		  (frustum-far (renderer-frustum the-renderer))))))  
+
+(define (persp)
+  (set! the-renderer 
+	(renderer-modify-frustum 
+	 the-renderer 
+	 (frustum #f
+		  (frustum-top frustum)
+		  (frustum-near (renderer-frustum the-renderer))
+		  (frustum-far (renderer-frustum the-renderer))))))
+
+
+(define (frustum-clip near far)
+  (set! the-renderer 
+	(renderer-modify-frustum 
+	 the-renderer 
+	 (frustum (frustum-ortho? (renderer-frustum the-renderer))
+		  (frustum-top (renderer-frustum the-renderer))
+		  near
+		  far))))
+
 
 (define (clear)
   (let ((canvas (document.getElementById "webgl-canvas")))
@@ -446,14 +518,14 @@
       (set! gl.viewportHeight canvas.height)
       (set! the-renderer (renderer gl))
       ;; set up camera transform
-      (mat4.translate (renderer-camera the-renderer) (list 0 0 -38))
+      (mat4.translate (renderer-camera the-renderer) (list 0 0 0))
       (set! the-renderer (renderer-build-prefab the-renderer))
       (gl.clearColor 0.0 0.0 0.0 1.0)
       (gl.enable gl.DEPTH_TEST)
       (gl.disable gl.CULL_FACE)
       ;; make sure the default texture is loaded
       (texture (load-texture "white.png"))
-      ))))
+      )))
 
 (define (resize-glcanvas canvas) 
   ;; Lookup the size the browser is displaying the canvas.
@@ -469,5 +541,15 @@
 	    (set! gl.viewportWidth canvas.width)
 	    (set! gl.viewportHeight canvas.height)))))
 
+(define (size-glcanvas canvas displayWidth displayHeight) 
+  ;; Make the canvas the same size
+  (set! canvas.width displayWidth)
+  (set! canvas.height displayHeight)
+  (let ((gl (canvas.getContext "experimental-webgl")))
+    (set! gl.viewportWidth canvas.width)
+    (set! gl.viewportHeight canvas.height)))
+
 
 (clear)
+(crank)
+
