@@ -43,7 +43,10 @@
   ;;(set! canvas-timeout-time (+ canvas-timeout-time canvas-delta))
   ;;(when (> timeout-time timeout-trigger)
   ;;	(window.location.reload))
-  (set! canvas-delta (/ (- (js "new Date()") canvas-time) 1000.0))
+  (let ((delta (/ (- (js "new Date()") canvas-time) 1000.0)))
+    ;; cap delta in case window, and rendering is paused for a while
+    (set! canvas-delta (min 0.5 delta)))
+	      
   (set! canvas-time (js "new Date()")))
 
 (define (set-canvas-drag-fn fn)
@@ -53,7 +56,7 @@
 (define (set-font! f) (set! canvas-font f))
 
 (define (canvas-init-defaults)
-  ;;(set! ctx.fillStyle "#000")
+  (set! ctx.fillStyle "#000")
   (set! ctx.font (string-append "30pt " canvas-font)))
 
 (define (resize-canvas canvas) 

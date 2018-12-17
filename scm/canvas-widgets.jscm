@@ -147,6 +147,8 @@
   (when (eq? (image-button-anim b) "twist")
 	(ctx.rotate 
 	 (* 0.25 (sin (* (+ (modulo (image-button-x b) 109) (time)) 3)))))
+  (when (eq? (image-button-anim b) "spin")
+	(ctx.rotate (* (time) 1)))
   (when (eq? (image-button-anim b) "zoom")
 	(let ((sc (* 0.1 (sin (* (modulo (image-button-x b) 23) 0.5 (time))))))
 	  (ctx.scale (+ 1 sc) (+ 1 sc))))
@@ -503,17 +505,27 @@
   (set! popups-list '()))
 
 (define (fire-popup! type text-list)
+  ;; new position score, clean out old ones first
+  (when (eq? type "position-score")
+	(set! popups-list
+	      (filter (lambda (p) (not (eq? (popup-type p) "position-score")))
+		      popups-list)))
+  ;; clean list if a bad message arrives
+  (when (eq? type "bad")
+	(set! popups-list '()))
   (let ((x (/ screen-width 2))
-	(y 200))
-    (set! popups-list (cons (make-popup 
-			     (make-textbox
-			      x y 
-			      "30pt Amatic" 
-			      55 "centre" 
-			      text-list)
-			     type
-			     (time)) 
-			    popups-list))))
+	(y 550))
+    (set! popups-list 
+	  (append 
+	   popups-list 
+	   (list (make-popup 
+		  (make-textbox
+		   x y 
+		   "30pt" 
+		   55 "centre" 
+		   text-list)
+		  type
+		  popup-lifespan))))))
 
 (define (render-popup! p)
   (let ((tb (popup-textbox p)))
@@ -540,7 +552,15 @@
 (define (render-popups!)
   (when (not (null? popups-list))
 	(render-popup! (car popups-list))
-	(when (> (- (time) (popup-time (car popups-list))) popup-lifespan)
+	;; just update the timer on the first popup in list
+	(set! popups-list
+	      (cons
+	       (make-popup 
+		(popup-textbox (car popups-list)) 
+		(popup-type (car popups-list)) 
+		(- (popup-time (car popups-list)) canvas-delta))
+	       (cdr popups-list)))
+	(when (< (popup-time (car popups-list)) 0)
 	      (set! popups-list (cdr popups-list)))))
 
 
