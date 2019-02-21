@@ -61,19 +61,24 @@
 
 (define (resize-canvas canvas) 
   ;; Lookup the size the browser is displaying the canvas.
-  (let ((displayWidth canvas.clientWidth)
-	(displayHeight canvas.clientHeight)) 
-    ;; Check if the canvas is not the same size.
-    (when (or (not (eq? canvas.width displayWidth))
-	      (not (eq? canvas.height displayHeight))
-	      (zero? screen-width)
-	      (zero? screen-height))
-	  ;; Make the canvas the same size
-	  (set! canvas.width displayWidth)
-	  (set! canvas.height displayHeight)
-	  (set! screen-width canvas.width)
-	  (set! screen-height canvas.height)
-	  (canvas-init-defaults))))
+  ;; (let ((displayWidth canvas.clientWidth)
+  ;; 	(displayHeight canvas.clientHeight)) 
+  ;;   ;; Check if the canvas is not the same size.
+  ;;   (when (or (not (eq? canvas.width displayWidth))
+  ;; 	      (not (eq? canvas.height displayHeight))
+  ;; 	      (zero? screen-width)
+  ;; 	      (zero? screen-height))
+  ;; 	  ;; Make the canvas the same size
+  ;; 	  (set! canvas.width displayWidth)
+  ;; 	  (set! canvas.height displayHeight)
+  ;; 	  (set! screen-width canvas.width)
+  ;; 	  (set! screen-height canvas.height)
+  ;; 	  (canvas-init-defaults)))
+  
+  (set! screen-width canvas.width)
+  (set! screen-height canvas.height)
+
+  )
 
 (set! window.onresize 
       (lambda ()

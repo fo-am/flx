@@ -528,18 +528,20 @@
       )))
 
 (define (resize-glcanvas canvas) 
-  ;; Lookup the size the browser is displaying the canvas.
-  (let ((displayWidth canvas.clientWidth)
-	(displayHeight canvas.clientHeight)) 
-    ;; Check if the canvas is not the same size.
-    (when (or (not (eq? canvas.width displayWidth))
-	      (not (eq? canvas.height displayHeight)))
-	  ;; Make the canvas the same size
-	  (set! canvas.width displayWidth)
-	  (set! canvas.height displayHeight)
-	  (let ((gl (canvas.getContext "experimental-webgl")))
-	    (set! gl.viewportWidth canvas.width)
-	    (set! gl.viewportHeight canvas.height)))))
+  ;; ;; Lookup the size the browser is displaying the canvas.
+  ;; (let ((displayWidth canvas.clientWidth)
+  ;; 	(displayHeight canvas.clientHeight)) 
+  ;;   ;; Check if the canvas is not the same size.
+  ;;   (when (or (not (eq? canvas.width displayWidth))
+  ;; 	      (not (eq? canvas.height displayHeight)))
+  ;; 	  ;; Make the canvas the same size
+  ;; 	  (set! canvas.width displayWidth)
+  ;; 	  (set! canvas.height displayHeight)
+  ;; 	  (let ((gl (canvas.getContext "experimental-webgl")))
+  ;; 	    (set! gl.viewportWidth canvas.width)
+  ;; 	    (set! gl.viewportHeight canvas.height))))
+  0
+  )
 
 (define (size-glcanvas canvas displayWidth displayHeight) 
   ;; Make the canvas the same size

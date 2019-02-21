@@ -26,6 +26,7 @@
 (define (trunc x) (js "~~x"))
 (define (feq? a b) (< (Math.abs (- a b)) Number.EPSILON))
 (define (abs x) (Math.abs x))
+(define (exp x) (Math.exp x))
 
 (define (clamp v min max)
   (cond
