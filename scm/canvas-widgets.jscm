@@ -514,7 +514,7 @@
   (when (eq? type "bad")
 	(set! popups-list '()))
   (let ((x (/ screen-width 2))
-	(y 750))
+	(y 650))
     (set! popups-list 
 	  (append 
 	   popups-list 
@@ -536,7 +536,7 @@
       (let ((grd (ctx.createLinearGradient x y (+ x w) (+ y h))))
 	(if (eq? (popup-type p) "bad")
 	    (grd.addColorStop 0 "#ff7777")
-	    (grd.addColorStop 0 "#359935"))
+	    (grd.addColorStop 0 "#abeeea"))
 	(grd.addColorStop 1 "#ffffff")
 	(set! ctx.strokeStyle "#000")
 	(ctx.strokeRect x y w h)
