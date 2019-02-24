@@ -36,7 +36,11 @@ function PLY_Face(a, b, c) {
 function inner_load_ply(data) {
     var lines = data.split("\n");
     var PLY_index = 0;
-    var arrayVertex, arrayNormal, arrayTexture, arrayColor, arrayIndex;
+    var arrayVertex=[];
+    var arrayNormal=[];
+    var arrayTexture=[];
+    var arrayColor=[];
+    var arrayIndex=[];
     var vertices = null;
     var faces = null;
     // Number of vertices in PLY file
