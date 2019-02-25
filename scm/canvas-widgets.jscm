@@ -135,6 +135,7 @@
 	(let ((fn (image-button-fn b))) 
 	  (set! canvas-event-occurred #t)
 	  (set! canvas-mouse-clicked #f)
+	  (play-sound "button.wav")
 	  (fn m))
 	m))
    (else m)))
