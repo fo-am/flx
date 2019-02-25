@@ -110,18 +110,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (make-image-button x y image-name text anim fn) 
+(define (make-image-button x y image-name text y-shift anim fn) 
   (let ((image (find-image image-name image-lib)))
-    (list x y image text anim fn (/ image.width 2) (/ image.height 2))))
+    (list x y image text y-shift anim fn (/ image.width 2) (/ image.height 2))))
 
 (define (image-button-x b) (list-ref b 0))
 (define (image-button-y b) (list-ref b 1))
 (define (image-button-image b) (list-ref b 2))
 (define (image-button-text b) (list-ref b 3))
-(define (image-button-anim b) (list-ref b 4))
-(define (image-button-fn b) (list-ref b 5))
-(define (image-button-width b) (list-ref b 6))
-(define (image-button-height b) (list-ref b 7))
+(define (image-button-y-shift b) (list-ref b 4))
+(define (image-button-anim b) (list-ref b 5))
+(define (image-button-fn b) (list-ref b 6))
+(define (image-button-width b) (list-ref b 7))
+(define (image-button-height b) (list-ref b 8))
 
 (define (image-button-update b m)
   (cond
@@ -149,7 +150,7 @@
 	(ctx.rotate 
 	 (* 0.25 (sin (* (+ (modulo (image-button-x b) 109) (time)) 3)))))
   (when (eq? (image-button-anim b) "spin")
-	(ctx.rotate (* (time) 1)))
+	(ctx.rotate (+ (modulo (image-button-x b) 109) (* (time) 1))))
   (when (eq? (image-button-anim b) "zoom")
 	(let ((sc (* 0.1 (sin (* (modulo (image-button-x b) 23) 0.5 (time))))))
 	  (ctx.scale (+ 1 sc) (+ 1 sc))))
@@ -160,12 +161,20 @@
 
   (ctx.drawImage (image-button-image b) 0 0)
   (ctx.restore)
-  
-  (let ((m (ctx.measureText (image-button-text b))))
-    (ctx.fillText 
-     (image-button-text b) 
-     (- (image-button-x b) (/ m.width 2)) 
-     (+ (image-button-y b) 10))))
+
+  (wrap-centred-text
+   ctx
+   (image-button-text b) 
+   (+ (image-button-x b) 3) ;; is this my eyes??
+   (+ (image-button-y b) 10 (image-button-y-shift b))
+   150 40))
+
+
+  ;; (let ((m (ctx.measureText (image-button-text b))))
+  ;;   (ctx.fillText 
+  ;;    (image-button-text b) 
+  ;;    (- (image-button-x b) (/ m.width 2)) 
+  ;;    (+ (image-button-y b) 10))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -612,3 +621,26 @@
                  (wrap-text-inner
                   (cdr words) test-line y))))))))
   (wrap-text-inner (text.split " ") "" y))
+
+(define (centred-text ctx text x y)
+  (let ((m (ctx.measureText text)))
+    (ctx.fillText text (- x (/ m.width 2)) y)))
+
+(define (wrap-centred-text ctx text x y max-width line-height)
+  (define (wrap-text-inner words line y)
+    (cond
+     ((null? words)
+      (centred-text ctx line x y))
+     (else
+      (let ((test-line (+ line (car words) " ")))
+        (let ((metrics (ctx.measureText test-line)))
+          (cond ((> metrics.width max-width)
+                 (centred-text ctx line x y)
+                 (wrap-text-inner (cdr words)
+                                  (+ (car words) " ")
+                                  (+ y line-height)))
+                (else
+                 (wrap-text-inner
+                  (cdr words) test-line y))))))))
+  (wrap-text-inner (text.split " ") "" y))
+
