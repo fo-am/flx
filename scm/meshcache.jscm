@@ -56,9 +56,10 @@
   (let ((mesh (assoc name mesh-cache)))
     (cond 
      (mesh (deep-copy (cadr mesh)));; deep copy!?
-     (else (msg (+ "mesh not loaded into cache in preload: " name))
-	   (let ((type (substring name (- (length name) 3) (length name))))
-	     (if (eq? type "obj")
-		 (force-load-obj name)
-		 (force-load-ply name)))))))
-	
+     (else 
+      (msg (+ "mesh not loaded into cache in preload: " name))
+      (let ((type (substring name (- (length name) 3) (length name))))
+	(if (eq? type "obj")
+	    (force-load-obj name)
+	    (force-load-ply name)))))))
+

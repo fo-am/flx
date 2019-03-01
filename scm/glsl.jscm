@@ -31,7 +31,7 @@
     (if (>= i c)
 	'()
 	(cons (gl.getActiveAttrib program i) (_ (+ i 1) c))))
-  (_ 0 (dbg (gl.getProgramParameter program gl.ACTIVE_ATTRIBUTES))))
+  (_ 0 (gl.getProgramParameter program gl.ACTIVE_ATTRIBUTES)))
 
       ;; (let ((attrib-list (get-attrib-info-list gl shader-program)))
       ;; 	(msg attrib-list)
@@ -53,7 +53,7 @@
     (if (>= i c)
 	'()
 	(cons (gl.getActiveUniform program i) (_ (+ i 1) c))))
-  (_ 0 (dbg (gl.getProgramParameter program gl.ACTIVE_UNIFORMS))))
+  (_ 0 (gl.getProgramParameter program gl.ACTIVE_UNIFORMS)))
 
 (define (build-shader gl attrib-names vert frag)
   (let ((fragment-shader (compile-shader gl gl.FRAGMENT_SHADER frag))

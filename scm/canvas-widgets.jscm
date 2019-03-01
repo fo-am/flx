@@ -433,14 +433,17 @@
    (else s)))
 
 (define (slider-render! s)
+  (ctx.beginPath)
   (ctx.moveTo (slider-x s) (slider-y s))
   (ctx.lineTo (+ (slider-x s) (slider-w s)) (slider-y s))
   (ctx.stroke)
+  (set! ctx.fillStyle "#81eae3")
   (ctx.beginPath)
   (ctx.moveTo (+ (slider-x s) (slider-p s)) (slider-y s))
   (ctx.arc (+ (slider-x s) (slider-p s)) (slider-y s) 15 0 (* Math.PI 2))
-  (ctx.closePath)
-  (ctx.fill))
+  (ctx.fill)
+  (set! ctx.fillStyle "#000"))
+
 
 (define (make-window x y w h) (list x y w h))
 
@@ -500,79 +503,6 @@
 	 (+ (progress-bar-y w) 25))))
     
     (canvas-init-defaults)))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (make-popup textbox type time) (list textbox type time))
-(define (popup-textbox p) (list-ref p 0))
-(define (popup-type p) (list-ref p 1))
-(define (popup-time p) (list-ref p 2))
-
-(define popups-list '())
-
-(define (clear-popups!)
-  (set! popups-list '()))
-
-(define (fire-popup! type text-list)
-  ;; new position score, clean out old ones first
-  (when (eq? type "position-score")
-	(set! popups-list
-	      (filter (lambda (p) (not (eq? (popup-type p) "position-score")))
-		      popups-list)))
-  ;; clean list if a bad message arrives
-  (when (eq? type "bad")
-	(set! popups-list '()))
-  (let ((x (/ screen-width 2))
-	(y 650))
-    (set! popups-list 
-	  (append 
-	   popups-list 
-	   (list (make-popup 
-		  (make-textbox
-		   x y 
-		   "30pt" 
-		   55 "centre" 
-		   text-list)
-		  type
-		  popup-lifespan))))))
-
-(define (render-popup! p)
-  (let ((tb (popup-textbox p)))
-    (let ((x (- (/ screen-width 2) 290)) 
-	  (y (- (textbox-y tb) 50))
-	  (w 580) 
-	  (h 130))
-      (let ((grd (ctx.createLinearGradient x y (+ x w) (+ y h))))
-	(if (eq? (popup-type p) "bad")
-	    (grd.addColorStop 0 "#ff7777")
-	    (grd.addColorStop 0 "#abeeea"))
-	(grd.addColorStop 1 "#ffffff")
-	(set! ctx.strokeStyle "#000")
-	(ctx.strokeRect x y w h)
-	(set! ctx.globalAlpha 0.8)
-	(set! ctx.fillStyle grd)
-	(ctx.fillRect x y w h)
-	(set! ctx.globalAlpha 1)
-	(canvas-init-defaults)
-	(textbox-render! tb)))))
-
-(define popup-lifespan 5)
-
-(define (render-popups!)
-  (when (not (null? popups-list))
-	(render-popup! (car popups-list))
-	;; just update the timer on the first popup in list
-	(set! popups-list
-	      (cons
-	       (make-popup 
-		(popup-textbox (car popups-list)) 
-		(popup-type (car popups-list)) 
-		(- (popup-time (car popups-list)) canvas-delta))
-	       (cdr popups-list)))
-	(when (< (popup-time (car popups-list)) 0)
-	      (set! popups-list (cdr popups-list)))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -143,14 +143,13 @@
 (define (load-image! fn finished images)
   (let ((image (js "new Image()")))
     (set! image.onload
-          (lambda ()
-            (console.log (+ "loaded " (+ "images/" fn)))
+          (lambda ()	    
+	    (console.log (+ "loaded " (+ "images/" fn)))
             (set! image-lib (cons (list fn image) image-lib))
             (when (eq? (length image-lib)
                        (length images))
 		  (set! loaded-images #t)
                   (finished))))
-;;    (console.log (+ "loading " (+ "images/" fn)))
     (set! image.src (+ "images/" fn))))
 
 (define (load-images! l finished)
@@ -186,8 +185,7 @@
           (snd.play))))
 
 (define (play-sound-looped sound)
-  (when (game-mute game)
-        (msg sound)
+  (when (not game-mute)
         (let ((snd (find-sound sound)))
           (if (eq? (js "typeof snd.loop") "boolean")
               (set! snd.loop true)
