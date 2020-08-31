@@ -22,4 +22,5 @@
 (define (instanceprim-render p gl view-camera camera-pos state tx)
   (pdata-render 
    (polyprim-pdata (instanceprim-polyref p))
+   (polyprim-type (instanceprim-polyref p))
    gl view-camera camera-pos state tx))

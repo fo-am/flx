@@ -22,9 +22,9 @@
 (define (polyprim-pdata p) (list-ref p 2))
 (define (polyprim-modify-pdata p v) (list-replace p 2 v))
 
-(define (build-polyprim gl pdata)
+(define (build-polyprim gl type pdata)
   (let ((p (polyprim 
-	    (pdata-size-verts pdata) 0 
+	    (pdata-size-verts pdata) type 
 	    (pdata-build-vbo gl pdata))))
     (pdata-update-vbo! gl pdata)
     p))
@@ -33,16 +33,19 @@
   ;; match load obj for the moment with points, 
   ;; normals and texturecoords 
   (build-polyprim 
-   gl (make-pdata 
-       (list "p" "n" "t" "c")
-       size-verts
-       (build-list 
-	(* (* size-verts 4) 3) 
-	(lambda (i) 0)))))
+   gl type (make-pdata 
+	    (list "p" "n" "t" "c")
+	    size-verts
+	    (build-list 
+	     (* (* size-verts 4) 3) 
+	     (lambda (i) 0)))))
 
 (define (polyprim-update-buffers! gl p)
   (pdata-update-vbo! gl (polyprim-pdata p)))
   
 (define (polyprim-render p gl view-camera camera-pos state tx)
-  (pdata-render (polyprim-pdata p) gl view-camera camera-pos state tx))
+  (pdata-render
+   (polyprim-pdata p)
+   (polyprim-type p)
+   gl view-camera camera-pos state tx))
 

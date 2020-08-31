@@ -196,7 +196,7 @@
   (primitive
    'polyprim
    (build-polyprim
-    gl
+    gl 'triangles
     (make-pdata 
      (list "p" "n" "t" "c") 
      (/ (length vertices) 4)

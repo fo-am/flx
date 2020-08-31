@@ -305,7 +305,7 @@
     (add-to-scenegraph!     
      (primitive
       'polyprim
-      (build-polyprim gl raw)))))
+      (build-polyprim gl 'triangles raw)))))
 
 (define (load-ply-primitive url)
   (let ((gl (renderer-gl the-renderer))
@@ -313,7 +313,7 @@
     (add-to-scenegraph!     
      (primitive
       'polyprim
-      (build-polyprim gl raw)))))
+      (build-polyprim gl 'triangles raw)))))
 
 ;; (list
 ;; 	(buffer gl "p" (list-ref raw 0) 3)

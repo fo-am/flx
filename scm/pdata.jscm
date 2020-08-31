@@ -142,7 +142,7 @@
 (define local (mat4.create))
 (define normal (mat4.create))
 
-(define (pdata-render pdata gl view-camera camera-pos state tx)
+(define (pdata-render pdata type gl view-camera camera-pos state tx)
   (let ((shader (state-shader state))
 	(texture (state-texture state))
 	(colour (state-colour state))
@@ -179,7 +179,16 @@
     (gl.uniform3fv shader.CameraPos camera-pos)
 
     (when (bitwise-and hints FLX_HINT_SOLID)
-	  (gl.drawArrays gl.TRIANGLES 0 (pdata-size-verts pdata))) 
+	  (gl.drawArrays
+	   (cond
+	    ((eq? type 'lines) gl.LINES)
+	    ((eq? type 'line-strip) gl.LINE_STRIP)
+	    ((eq? type 'line-loop) gl.LINE_LOOP)
+	    ((eq? type 'triangles) gl.TRIANGLES)
+	    ((eq? type 'triangle-strip) gl.TRIANGLE_STRIP)
+	    ((eq? type 'triangle-fan) gl.TRIANGLE_FAN)
+	    (else gl.TRIANGLES))
+	   0 (pdata-size-verts pdata))) 
     (when (bitwise-and hints FLX_HINT_WIRE)
 	  (gl.drawArrays gl.LINE_STRIP 0 (pdata-size-verts pdata)))
     ))

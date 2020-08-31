@@ -124,6 +124,7 @@
 
 (define (qnormalise q)  (quat4.normalise q))
 (define (qmul a b) (quat4.multiply a b))
+(define (qmulvec q v) (quat4.multiplyVec3 q v))
 (define (q->m q) (quat4.toMat4 q))
 (define (qslerp a b t) 
   (let ((r (quat 0 0 0 0)))
