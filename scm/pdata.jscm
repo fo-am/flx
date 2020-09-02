@@ -93,6 +93,17 @@
   (js "};")
   interleaved)
 
+(define (stride-index-map fn interleaved stride offset)
+  (js "var index_map_pos=0;")
+  (js "for (var stride_map_i=offset; stride_map_i<interleaved.length; stride_map_i+=stride) {")
+  (js "var stride_map_v=fn(index_map_pos,[interleaved[stride_map_i],interleaved[stride_map_i+1],interleaved[stride_map_i+2]]);")
+  (js "index_map_pos+=1;")
+  (js "interleaved[stride_map_i]=stride_map_v[0];")
+  (js "interleaved[stride_map_i+1]=stride_map_v[1];")
+  (js "interleaved[stride_map_i+2]=stride_map_v[2];")
+  (js "};")
+  interleaved)
+
 (define (pdata-offset v name)
   (define (_ names r)
     (cond
@@ -112,6 +123,14 @@
     (let ((stride (* (length (pdata-names v)) 3))) 
       (pdata-modify-interleaved-data!
        v (stride-map fn (pdata-interleaved-data v) stride offset))
+      ;; might want to do this separately as it's potentially slow
+      (pdata-update-vbo! gl v))))
+
+(define (pdata-internal-index-map! gl v fn name)
+  (let ((offset (pdata-offset v name)))  
+    (let ((stride (* (length (pdata-names v)) 3))) 
+      (pdata-modify-interleaved-data!
+       v (stride-index-map fn (pdata-interleaved-data v) stride offset))
       ;; might want to do this separately as it's potentially slow
       (pdata-update-vbo! gl v))))
 

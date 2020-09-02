@@ -402,6 +402,16 @@
 	   (scenenode-primitive (renderer-grab-stack-top the-renderer))))
 	 fn name)))
 
+(define (pdata-index-map! fn name)
+  (when (renderer-grabbed? the-renderer)
+	(pdata-internal-index-map!
+	 (renderer-gl the-renderer) 
+	 ;; todo: check type is polyprim
+	 (polyprim-pdata 
+	  (primitive-inner
+	   (scenenode-primitive (renderer-grab-stack-top the-renderer))))
+	 fn name)))
+
 (define (pdata-add! name)
   (when (renderer-grabbed? the-renderer)
 	 ;; todo: check type is polyprim
