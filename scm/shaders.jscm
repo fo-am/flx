@@ -35,7 +35,7 @@ void main()
     P = p.xyz;
     T = t;
     C = c;
-    L = vec3(0,0,1); /* vec3(ModelViewMatrix*vec4((vec3(0,10,0)-p),1)); */
+    L = vec3(vec3(-50,-150,-100)-p); 
     N = normalize(vec3(NormalMatrix*vec4(n,1)));	
     gl_Position = ModelViewMatrix * vec4(p,1);
 }")
@@ -54,7 +54,7 @@ varying vec3 L;
 void main() {
     vec3 l = normalize(L);
     vec3 n = normalize(N);
-    float diffuse = dot(vec3(0,1,0),n);
+    float diffuse = dot(l,n);
 
     if(texture2D(texture, vec2(T.s, T.t)).a == 0.0) {
         discard;
