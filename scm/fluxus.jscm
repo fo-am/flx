@@ -478,15 +478,15 @@
 
 (define framerate-divide 1)
 
-(define (outer-render)
+(define (outer-render timestamp)
   (set! t (+ t 1))  
   (when (zero? (modulo t framerate-divide))
 	(set! the-renderer (renderer-render the-renderer))
-	;; (set! stat-period (- stat-period 1))            
+	(set! stat-period (- stat-period 1))            
 	(when (zero? stat-period)
 	      (set! stat-period 60)
-	      (set! current-fps (/ (* stat-period 1000) (- (Date.now) last-stat)))
-	      (console.log (+ "FPS: " (trunc current-fps)))
+	      (set! current-fps (/ (- (Date.now) last-stat) stat-period))
+	      ;;(console.log (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))))
 	      (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 
@@ -562,6 +562,4 @@
     (set! gl.viewportHeight canvas.height)))
 
 
-(clear)
-(crank)
 

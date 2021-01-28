@@ -524,10 +524,12 @@ ditto.core_forms = function(fn, args) {
                  ["=","=="],
                  ["and","&&"],
                  ["or","||"],
-		 ["bitwise_and","&"],
-		 ["bitwise_or","|"],
-		 ["bitwise_not","^"]];
-
+				 ["bitwise_and","&"],
+				 ["bitwise_or","|"],
+				 ["bitwise_not","^"],
+				 ["bitwise_lshift","<<"],
+				 ["bitwise_rshift",">>"]];
+	
     for (var i=0; i<infix.length; i++) {
         if (fn == infix[i][0]) return debug+ditto.infixify(infix[i][1],args);
     }
