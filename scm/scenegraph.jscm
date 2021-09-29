@@ -29,13 +29,38 @@
   (msg (+ (scenenode-id p) " " (state-tx (scenenode-state p)))))
 
 ;; order children by id
-(define (scenenode-modify-add-child p child)
+(define (scenenode-modify-add-child-slow p child)
   (define (_ l v)
     (cond
      ((null? l) (list v))
      ((< (scenenode-id  v) (scenenode-id (car l))) (cons v l))
      (else (cons (car l) (_ (cdr l) v)))))
   (list-replace p 3 (_ (scenenode-children p) child)))
+
+;; optimised version
+(define (scenenode-modify-add-child p child)
+  (list-replace
+   p 3
+   (cond
+	;; empty list case
+	((null? (scenenode-children p)) (list child))
+	;; prob most common if id is bigger than the last
+	((< (scenenode-id
+		   (list-ref (scenenode-children p)
+					 (- (length (scenenode-children p)) 1)))
+		  (scenenode-id child))
+	 (append (scenenode-children p) (list child)))
+	(else
+	 ;; do the search
+	 (cadr
+	  (foldl
+	   (lambda (c r)
+		 (if (and (not (car r)) (< (scenenode-id child)
+								   (scenenode-id c)))
+			 (list #t (append (cadr r) (list child c)))
+			 (list (car r) (append (cadr r) (list c)))))
+	   (list #f '())
+	   (scenenode-children p)))))))
 
 ;; binary search
 (define (scenenode-search-child l id)
