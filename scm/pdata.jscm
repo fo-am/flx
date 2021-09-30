@@ -161,6 +161,8 @@
 (define local (mat4.create))
 (define normal (mat4.create))
 
+(define last-vbo #f)
+
 (define (pdata-render pdata type gl view-camera camera-pos state tx)
   (let ((shader (state-shader state))
 	(texture (state-texture state))
@@ -180,12 +182,18 @@
     ;; 12 bytes for 3 floats...
     (define total-bytes (* (length (pdata-names pdata)) 12))
 
-    (index-for-each
-     (lambda (index name)
-       (gl.enableVertexAttribArray index)
-       (gl.vertexAttribPointer 
-	index 3 gl.FLOAT false total-bytes (* index 12)))
-     (pdata-names pdata))
+	;; easy optimisation is to check the last vbo
+	;; and if it was the same as this one (eg. when
+	;; instancing) we don't need to upload it
+	(when (not (eq? (pdata-vbo pdata) last-vbo))
+		  (index-for-each
+		   (lambda (index name)
+			 (gl.enableVertexAttribArray index)
+			 (gl.vertexAttribPointer 
+			  index 3 gl.FLOAT false total-bytes (* index 12)))
+		   (pdata-names pdata)))
+
+	(set! last-vbo (pdata-vbo pdata))
 
     (if (eq? texture "")
 	(bind-texture gl shader "white.png")
