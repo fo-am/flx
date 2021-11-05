@@ -536,9 +536,9 @@
 
 (define (clear)
   (let ((gl (if external-gl-context
-				(renderer-gl the-renderer)
-				(let ((canvas (document.getElementById "webgl-canvas")))
-				  (canvas.getContext "experimental-webgl")))))
+		(begin (msg "external...") (renderer-gl the-renderer))
+		(let ((canvas (document.getElementById "webgl-canvas")))
+		  (canvas.getContext "experimental-webgl")))))
 	(when (not external-gl-context) 		
 		  (let ((canvas (document.getElementById "webgl-canvas")))
 			(set! gl.viewportWidth canvas.width)

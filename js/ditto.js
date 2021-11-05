@@ -901,3 +901,34 @@ function simple_eval(code) {
     setTimeout(js,0);
 };
 
+function ditto_run(filenames) {
+    // load and compile the syntax parser
+    var syntax_parse=ditto.load_unparsed("flx/scm/syntax.jscm");
+    try {
+        //console.log(syntax_parse);
+        do_syntax=eval(syntax_parse);
+    } catch (e) {
+        console.log("An error occured parsing (syntax) of "+syntax_parse);
+        console.log(e);
+        console.log(e.stack);
+    }
+
+    var js=ditto.load("flx/scm/base.jscm");
+    
+    filenames.forEach(function(filename) {
+        //console.log("loading "+filename);
+        js+=ditto.load(filename);
+    });
+    
+    try {
+        //eval(js);
+        setTimeout(js,0);
+	//console.log(js);
+    } catch (e) {
+	//console.log(js);
+        console.log(e);
+        console.log(e.stack);
+        ditto.to_page("output", "Error: "+e);	
+        ditto.to_page("output", "Error: "+e.stack);	
+    }    
+};

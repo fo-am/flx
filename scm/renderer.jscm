@@ -156,17 +156,27 @@
 
 (define (renderer-render r)
   (let ((gl (renderer-gl r)))
-	(renderer-render-outer
-	 r 0 0 gl.viewportWidth gl.viewportHeight
-	 (renderer-calc-frustum gl r)
-	 (renderer-camera r))))
+
+    (gl.clearColor (vx (renderer-clear-colour r)) 
+		   (vy (renderer-clear-colour r))
+		   (vz (renderer-clear-colour r))
+		   (list-ref (renderer-clear-colour r) 3))
+    (gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))
+    
+    (renderer-render-outer
+     r 0 0 gl.viewportWidth gl.viewportHeight
+     (renderer-calc-frustum gl r)
+     (renderer-camera r))))
 
 (define (renderer-render-outer r vpx vpy vpw vph projection camera)
   (let ((gl (renderer-gl r)))
-	(gl.viewport vpx vpy vpw vph)
-	(renderer-modify-view r projection)
-	(renderer-modify-camera r camera)
-	(renderer-render-inner r)))
+    (msg (list (list vpx vpy vpw vph)
+	       projection
+	       camera))
+    (gl.viewport vpx vpy vpw vph)
+    (renderer-modify-view r projection)
+    (renderer-modify-camera r camera)
+    (renderer-render-inner r)))
 
 (define (renderer-render-inner r)
   (let ((gl (renderer-gl r))
@@ -176,11 +186,6 @@
 
 	(msg "renderin")
 	
-    (gl.clearColor (vx (renderer-clear-colour r)) 
-		   (vy (renderer-clear-colour r))
-		   (vz (renderer-clear-colour r))
-		   (list-ref (renderer-clear-colour r) 3))
-    (gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))
     
     (gl.enable gl.BLEND)
     (gl.blendFunc gl.SRC_ALPHA gl.ONE_MINUS_SRC_ALPHA)
