@@ -520,22 +520,38 @@
 		  near
 		  far))))
 
+(define external-gl-context #f)
+
+(define (fluxus-init-with-gl gl)
+  (set! external-gl-context #t)
+  (set! the-renderer (renderer gl))
+  ;; set up camera transform
+  (mat4.translate (renderer-camera the-renderer) (list 0 0 0))
+  (set! the-renderer (renderer-build-prefab the-renderer))
+  (gl.clearColor 0.0 0.0 0.0 1.0)
+  (gl.enable gl.DEPTH_TEST)
+  (gl.disable gl.CULL_FACE)
+  ;; make sure the default texture is loaded
+  (texture (load-texture "white.png")))
 
 (define (clear)
-  (let ((canvas (document.getElementById "webgl-canvas")))
-    (let ((gl (canvas.getContext "experimental-webgl")))
-      (set! gl.viewportWidth canvas.width)
-      (set! gl.viewportHeight canvas.height)
-      (set! the-renderer (renderer gl))
-      ;; set up camera transform
-      (mat4.translate (renderer-camera the-renderer) (list 0 0 0))
-      (set! the-renderer (renderer-build-prefab the-renderer))
-      (gl.clearColor 0.0 0.0 0.0 1.0)
-      (gl.enable gl.DEPTH_TEST)
-      (gl.disable gl.CULL_FACE)
-      ;; make sure the default texture is loaded
-      (texture (load-texture "white.png"))
-      )))
+  (let ((gl (if external-gl-context
+				(renderer-gl the-renderer)
+				(let ((canvas (document.getElementById "webgl-canvas")))
+				  (canvas.getContext "experimental-webgl")))))
+	(when (not external-gl-context) 		
+		  (let ((canvas (document.getElementById "webgl-canvas")))
+			(set! gl.viewportWidth canvas.width)
+			(set! gl.viewportHeight canvas.height)))
+	(set! the-renderer (renderer gl))
+	;; set up camera transform
+	(mat4.translate (renderer-camera the-renderer) (list 0 0 0))
+	(set! the-renderer (renderer-build-prefab the-renderer))
+	(gl.clearColor 0.0 0.0 0.0 1.0)
+	(gl.enable gl.DEPTH_TEST)
+	(gl.disable gl.CULL_FACE)
+	;; make sure the default texture is loaded
+	(texture (load-texture "white.png"))))
 
 (define (resize-glcanvas canvas) 
   ;; ;; Lookup the size the browser is displaying the canvas.
