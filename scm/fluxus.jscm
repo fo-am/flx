@@ -524,6 +524,7 @@
 
 (define (flx-init-with-gl gl)
   (set! shader-cache ())
+  (set! textures ())
   (set! external-gl-context #t)
   (set! the-renderer (renderer gl))
   ;; set up camera transform
