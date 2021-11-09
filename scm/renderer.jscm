@@ -170,9 +170,6 @@
 
 (define (renderer-render-outer r vpx vpy vpw vph projection camera)
   (let ((gl (renderer-gl r)))
-    (msg (list (list vpx vpy vpw vph)
-	       projection
-	       camera))
     (gl.viewport vpx vpy vpw vph)
     (renderer-modify-view r projection)
     (renderer-modify-camera r camera)
@@ -183,9 +180,6 @@
 	(hook (renderer-hook r))
 	(view-camera (mat4.create))
 	(camera-pos (vector 0 0 0)))
-
-	(msg "renderin")
-	
     
     (gl.enable gl.BLEND)
     (gl.blendFunc gl.SRC_ALPHA gl.ONE_MINUS_SRC_ALPHA)
