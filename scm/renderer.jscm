@@ -154,15 +154,17 @@
 		 (frustum-far frustum) 
 		 (renderer-view r)))))
 
+(define (renderer-clear r)
+  (let ((gl (renderer-gl r)))
+	(gl.clearColor (vx (renderer-clear-colour r)) 
+				   (vy (renderer-clear-colour r))
+				   (vz (renderer-clear-colour r))
+				   (list-ref (renderer-clear-colour r) 3))
+	(gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))))
+
 (define (renderer-render r)
   (let ((gl (renderer-gl r)))
-
-    (gl.clearColor (vx (renderer-clear-colour r)) 
-		   (vy (renderer-clear-colour r))
-		   (vz (renderer-clear-colour r))
-		   (list-ref (renderer-clear-colour r) 3))
-    (gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))
-    
+	(renderer-clear r)    
     (renderer-render-outer
      r 0 0 gl.viewportWidth gl.viewportHeight
      (renderer-calc-frustum gl r)
