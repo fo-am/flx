@@ -522,7 +522,7 @@
 
 (define external-gl-context #f)
 
-(define (fluxus-init-with-gl gl)
+(define (flx-init-with-gl gl)
   (set! external-gl-context #t)
   (set! the-renderer (renderer gl))
   ;; set up camera transform
@@ -536,9 +536,9 @@
 
 (define (clear)
   (let ((gl (if external-gl-context
-		(begin (msg "external...") (renderer-gl the-renderer))
-		(let ((canvas (document.getElementById "webgl-canvas")))
-		  (canvas.getContext "experimental-webgl")))))
+				(renderer-gl the-renderer)
+				(let ((canvas (document.getElementById "webgl-canvas")))
+				  (canvas.getContext "experimental-webgl")))))
 	(when (not external-gl-context) 		
 		  (let ((canvas (document.getElementById "webgl-canvas")))
 			(set! gl.viewportWidth canvas.width)

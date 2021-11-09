@@ -776,7 +776,7 @@ function shuffle(array) {
 }
 
 
-function init(filenames) {
+function ditto_init(filenames) {
     jQuery(document).ready(function($) {
 
         // load and compile the syntax parser
