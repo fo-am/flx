@@ -80,9 +80,9 @@
   0
   )
 
-(set! window.onresize 
-      (lambda ()
-	(resize-canvas canvas)))
+;;(set! window.onresize 
+;;      (lambda ()
+;;		(resize-canvas canvas)))
 
 (define (mouse-from-event canvas e state)
   (let ((rect (canvas.getBoundingClientRect)))
