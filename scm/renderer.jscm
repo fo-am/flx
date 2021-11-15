@@ -195,44 +195,8 @@
 
     (when hook (js "try{") (hook) (js "} catch(e) { ") (display e) (js "}"))
 
-    ;; immediate mode
-    (let ((ident (mat4.identity (mat4.create))))
-      (for-each
-       (lambda (p)
-	 (let ((state (car p))
-	       (prim (cadr p)))
-	   (primitive-render prim gl view-camera camera-pos state ident)))
-       (renderer-immediate-prims r))
-      
-      ;; retained mode
-      (scenegraph-render (renderer-scenegraph r) gl view-camera camera-pos ident))
-    (renderer-immediate-clear r)))
-
-						 
-(define (renderer-render-old r)
-  (let ((gl (renderer-gl r))
-	(hook (renderer-hook r))
-	(view-camera (mat4.create))
-	(camera-pos (vector 0 0 0)))
-
-    (gl.viewport 0 0 gl.viewportWidth gl.viewportHeight)
-    (gl.clearColor (vx (renderer-clear-colour r)) 
-		   (vy (renderer-clear-colour r))
-		   (vz (renderer-clear-colour r))
-		   (list-ref (renderer-clear-colour r) 3))
-    (gl.clear (js "gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT"))
-    
-    (gl.enable gl.BLEND)
-    (gl.blendFunc gl.SRC_ALPHA gl.ONE_MINUS_SRC_ALPHA)
-
-    ;; for scene inspection purposes...
-    (mat4.multiply (renderer-view r) (renderer-camera r) (renderer-world-to-screen r))
-    (mat4.multiply (renderer-view r) (renderer-camera r) view-camera)
-    (mat4.multiplyVec3 view-camera (vector 0 0 0) camera-pos)
-
-    (mat4.identity (renderer-top-tx r))
-
-    (when hook (js "try{") (hook) (js "} catch(e) { ") (display e) (js "}"))
+	(set! vbo-saved 0)
+	(set! tex-saved 0)
 
     ;; immediate mode
     (let ((ident (mat4.identity (mat4.create))))
@@ -245,7 +209,22 @@
       
       ;; retained mode
       (scenegraph-render (renderer-scenegraph r) gl view-camera camera-pos ident))
-    (renderer-immediate-clear r)))
+	;;(msg (list vbo-saved tex-saved))
+	
+    (renderer-immediate-clear r))
+  
+  )
+
+(define (renderer-combine-polyprims gl polyprims)
+  (primitive
+   'polyprim
+   (build-polyprim
+    gl 'triangles
+    (make-pdata 
+     (list "p" "n" "t" "c") ;; assume these match!
+     (foldl (lambda (pp r) (+ r (pdata-size-verts (polyprim-pdata pp)))) 0 polyprims)
+	 (foldl (lambda (pp r) (append r (pdata-interleaved-data (polyprim-pdata pp)))) '() polyprims))
+    )))
 
 (define (assemble-polyprim gl vertices normals texcoords)
   (primitive

@@ -139,6 +139,7 @@
 (define (minverse m) (mat4.inverse m))
 (define (mmul a b) (mat4.multiply a b))
 (define (mtransform m v) (mat4.multiplyVec3 m v))
+(define (mtransform-norm m v) (mat4.multiplyVec3Norm m v))
 (define (mtranslate m v) (mat4.translate m v))
 (define (mscale m v) (mat4.scale m v))
 (define (mrotate m axis angle) (mat4.rotate m angle axis))

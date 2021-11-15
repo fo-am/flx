@@ -923,6 +923,31 @@ mat4.multiplyVec3 = function(mat, vec, dest) {
 };
 
 /*
+ * mat4.multiplyVec3Norm
+ * Transforms a vec3 with the given matrix
+ * 4th vector component is implicitly '1'
+ *
+ * Params:
+ * mat - mat4 to transform the vector with
+ * vec - vec3 to transform
+ * dest - Optional, vec3 receiving operation result. If not specified result is written to vec
+ *
+ * Returns:
+ * dest if specified, vec otherwise
+ */
+mat4.multiplyVec3Norm = function(mat, vec, dest) {
+        if(!dest) { dest = vec }
+
+        var x = vec[0], y = vec[1], z = vec[2];
+
+        dest[0] = mat[0]*x + mat[4]*y + mat[8]*z;
+        dest[1] = mat[1]*x + mat[5]*y + mat[9]*z;
+        dest[2] = mat[2]*x + mat[6]*y + mat[10]*z;
+
+        return dest;
+};
+
+/*
  * mat4.multiplyVec4
  * Transforms a vec4 with the given matrix
  *

@@ -40,6 +40,30 @@
 	     (* (* size-verts 4) 3) 
 	     (lambda (i) 0)))))
 
+(define (polyprim-combine gl polyprims)
+  (build-polyprim
+   gl 'triangles
+   (make-pdata 
+	(list "p" "n" "t" "c") ;; assume these match!
+	(foldl
+	 (lambda (pp r)
+	   (if (eq? (primitive-type pp) 'polyprim)
+		   (+ r (pdata-size-verts
+				 (polyprim-pdata
+				  (primitive-inner pp))))
+		   r))
+	 0
+	 polyprims)
+	(foldl
+	 (lambda (pp r)
+	   (if (eq? (primitive-type pp) 'polyprim)
+		   (append r (pdata-interleaved-data
+					  (polyprim-pdata
+					   (primitive-inner pp))))
+		   r))
+	 '()
+	 polyprims))))
+
 (define (polyprim-update-buffers! gl p)
   (pdata-update-vbo! gl (polyprim-pdata p)))
   

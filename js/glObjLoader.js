@@ -20,82 +20,82 @@ function inner_load_obj(string) {
         if ( parts.length > 0 ) {
             switch(parts[0]) {
             case 'v':  positions.push(
-		vec3.create(
+				vec3.create(
                     [parseFloat(parts[1]),
                      parseFloat(parts[2]),
                      parseFloat(parts[3])]
-		));
-		break;
+				));
+				break;
             case 'vn':
-		normals.push(
-                    vec3.create(
-			[parseFloat(parts[1]),
-			 parseFloat(parts[2]),
-			 parseFloat(parts[3])]));
-		break;
+				normals.push(
+					vec3.create(
+						[parseFloat(parts[1]),
+						 parseFloat(parts[2]),
+						 parseFloat(parts[3])]));
+				break;
             case 'vt':
-		have_tex = true;
-		tex.push(
-                    vec3.create(
-			[parseFloat(parts[1]),
-			 parseFloat(parts[2]),
-			 0]));
-		break;
+				have_tex = true;
+				tex.push(
+					vec3.create(
+						[parseFloat(parts[1]),
+						 parseFloat(parts[2]),
+						 0]));
+				break;
             case 'f': {
-		var f1 = parts[1].split('/');
-		var f2 = parts[2].split('/');
-		var f3 = parts[3].split('/');
-
-		Array.prototype.push.apply(
+				var f1 = parts[1].split('/');
+				var f2 = parts[2].split('/');
+				var f3 = parts[3].split('/');
+				
+				Array.prototype.push.apply(
                     verts, positions[parseInt(f1[0]) - 1]);
-		Array.prototype.push.apply(
+				Array.prototype.push.apply(
                     verts, normals[parseInt(f1[2]) - 1]);
-		if (!have_tex) {
-		    Array.prototype.push.apply(
-			verts, positions[parseInt(f1[0]) - 1]);
-		} else {
-		    Array.prototype.push.apply(
-			verts, tex[parseInt(f1[1]) - 1]);
-		}
-		// colours
-		Array.prototype.push.apply(
-		    verts, [1,1,1]);
+				if (!have_tex) {
+					Array.prototype.push.apply(
+						verts, positions[parseInt(f1[0]) - 1]);
+				} else {
+					Array.prototype.push.apply(
+						verts, tex[parseInt(f1[1]) - 1]);
+				}
+				// colours
+				Array.prototype.push.apply(
+					verts, [1,1,1]);
 
-		Array.prototype.push.apply(
+				Array.prototype.push.apply(
                     verts, positions[parseInt(f2[0]) - 1]);
-		Array.prototype.push.apply(
+				Array.prototype.push.apply(
                     verts, normals[parseInt(f2[2]) - 1]);
-		if (!have_tex) {
-		    Array.prototype.push.apply(
-			verts, positions[parseInt(f2[0]) - 1]);
-		} else {
-		    Array.prototype.push.apply(
-			verts, tex[parseInt(f2[1]) - 1]);
-		}
-		// colours
-		Array.prototype.push.apply(
-		    verts,[1,1,1]);
+				if (!have_tex) {
+					Array.prototype.push.apply(
+						verts, positions[parseInt(f2[0]) - 1]);
+				} else {
+					Array.prototype.push.apply(
+						verts, tex[parseInt(f2[1]) - 1]);
+				}
+				// colours
+				Array.prototype.push.apply(
+					verts,[1,1,1]);
 
-		Array.prototype.push.apply(
+				Array.prototype.push.apply(
                     verts, positions[parseInt(f3[0]) - 1]);
-		Array.prototype.push.apply(
+				Array.prototype.push.apply(
                     verts, normals[parseInt(f3[2]) - 1]);
-		if (!have_tex) {
-		    Array.prototype.push.apply(
-			verts, positions[parseInt(f3[0]) - 1]);
-		} else {
-		    Array.prototype.push.apply(
-			verts, tex[parseInt(f3[1]) - 1]);
-		}
-		// colours
-		Array.prototype.push.apply(
-		    verts, [1,1,1]);
+				if (!have_tex) {
+					Array.prototype.push.apply(
+						verts, positions[parseInt(f3[0]) - 1]);
+				} else {
+					Array.prototype.push.apply(
+						verts, tex[parseInt(f3[1]) - 1]);
+				}
+				// colours
+				Array.prototype.push.apply(
+					verts, [1,1,1]);
             }
             }
         }
     }
     // returns fluxus vbo object (see vbo.jscm)
     return [["p","n","t","c"],
-	    (verts.length/3)/4, verts, 0];
+			(verts.length/3)/4, verts, 0];
 }
 

@@ -276,6 +276,52 @@
       'polyprim
       (build-empty-polyprim gl type size-verts)))))
 
+;; build a new primitive which is a combination of the supplied ones
+(define (build-combined polyprim-id-list)
+  (let ((gl (renderer-gl the-renderer)))
+	(add-to-scenegraph!     
+     (primitive
+      'polyprim
+      (polyprim-combine
+	   gl (map
+		   (lambda (id)
+			 (scenenode-primitive
+			  (scenegraph-find (renderer-scenegraph the-renderer) id)))
+		   polyprim-id-list))))))
+
+(define (get-children)
+  (if (renderer-grabbed? the-renderer)
+	  (map
+	   (lambda (p)
+		 (scenenode-id p))
+	   (scenenode-children (renderer-grab-stack-top the-renderer)))
+	  '()))
+
+(define (apply-transform!)
+  (let ((tx (get-transform)))
+    (pdata-map!
+     (lambda (p)
+       (mtransform tx p))
+     "p")
+	(pdata-map!
+	 (lambda (p)
+	   (mtransform-norm tx p))
+     "n")
+	(identity)))
+
+;; does not unparent.
+(define (apply-global-transform!)
+  (let ((tx (get-global-transform)))
+    (pdata-map!
+     (lambda (p)
+       (mtransform tx p))
+     "p")
+	(pdata-map!
+	 (lambda (p)
+       (mtransform-norm tx p))
+     "n")
+	(identity)))
+
 (define (set-hint! hint)
   (set! the-renderer 
 	(renderer-modify-current-state
@@ -362,14 +408,6 @@
 	 the-renderer (scenegraph-remove 
 		       (renderer-scenegraph the-renderer) 
 		       id))))
-
-(define (apply-transform!)
-  (let ((tx (get-transform)))
-    (pdata-map!
-     (lambda (p)
-       (mtransform tx p))
-     "p"))
-  (identity))
 
 (define (build-cube)
   (add-to-scenegraph! (list-ref (renderer-prefab the-renderer) 0)))
@@ -466,6 +504,7 @@
 (define t 0)
 (define stat-period 60)
 (define last-stat 0)
+(define avg-framerate 60)
 
 (define (crank)
   (outer-render))
@@ -486,7 +525,11 @@
 	(when (zero? stat-period)
 	      (set! stat-period 60)
 	      (set! current-fps (/ (- (Date.now) last-stat) stat-period))
-	      ;;(console.log (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))))
+		  (when (< current-fps 999)
+				(set! avg-framerate (/ (+ avg-framerate current-fps) 2)))
+	      (console.log
+		   (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
+			  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
 	      (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 
