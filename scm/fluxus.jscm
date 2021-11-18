@@ -124,12 +124,12 @@
 (define (project-point p)
   (let ((ret (list (vx p) (vy p) (vz p) 1))
         (gl (renderer-gl the-renderer)))
-    (mat4.multiplyVec4 (renderer-world-to-screen the-renderer) ret)
+	(mat4.multiplyVec4 (renderer-world-to-screen the-renderer) ret)
     (let ((z (list-ref ret 3)))
       (vec3.create 
        (list (* (+ (/ (vx ret) z) 1) gl.viewportWidth 0.5)
-	     (* (+ (/ (- 0 (vy ret)) z) 1) gl.viewportHeight 0.5)
-	     0)))))
+			 (* (+ (/ (- 0 (vy ret)) z) 1) gl.viewportHeight 0.5)
+			 0)))))
 
 (define (ndc-coords gl v z)
   (list
@@ -527,9 +527,9 @@
 	      (set! current-fps (/ (- (Date.now) last-stat) stat-period))
 		  (when (< current-fps 999)
 				(set! avg-framerate (/ (+ avg-framerate current-fps) 2)))
-	      (console.log
-		   (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
-			  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
+	      ;;(console.log
+		  ;; (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
+		  ;;	  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
 	      (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 
@@ -575,7 +575,7 @@
   (set! the-renderer (renderer-build-prefab the-renderer))
   (gl.clearColor 0.0 0.0 0.0 1.0)
   (gl.enable gl.DEPTH_TEST)
-  (gl.disable gl.CULL_FACE)
+  ;;(gl.disable gl.CULL_FACE)
   ;; make sure the default texture is loaded
   (texture (load-texture "white.png")))
 
@@ -594,25 +594,28 @@
 	(set! the-renderer (renderer-build-prefab the-renderer))
 	(gl.clearColor 0.0 0.0 0.0 1.0)
 	(gl.enable gl.DEPTH_TEST)
-	(gl.disable gl.CULL_FACE)
+	;;(gl.disable gl.CULL_FACE)
 	;; make sure the default texture is loaded
 	(texture (load-texture "white.png"))))
 
 (define (resize-glcanvas canvas) 
-  ;; ;; Lookup the size the browser is displaying the canvas.
-  ;; (let ((displayWidth canvas.clientWidth)
-  ;; 	(displayHeight canvas.clientHeight)) 
-  ;;   ;; Check if the canvas is not the same size.
-  ;;   (when (or (not (eq? canvas.width displayWidth))
-  ;; 	      (not (eq? canvas.height displayHeight)))
-  ;; 	  ;; Make the canvas the same size
-  ;; 	  (set! canvas.width displayWidth)
-  ;; 	  (set! canvas.height displayHeight)
-  ;; 	  (let ((gl (canvas.getContext "experimental-webgl")))
-  ;; 	    (set! gl.viewportWidth canvas.width)
-  ;; 	    (set! gl.viewportHeight canvas.height))))
-  0
-  )
+  (let ((canvas (document.getElementById "webgl-canvas")))
+	;; Lookup the size the browser is displaying the canvas.
+	(let ((displayWidth canvas.clientWidth)
+		  (displayHeight canvas.clientHeight)) 
+	  ;; Check if the canvas is not the same size.
+	  (when (or (not (eq? canvas.width displayWidth))
+				(not (eq? canvas.height displayHeight)))
+			;; Make the canvas the same size
+			(set! canvas.width displayWidth)
+			(set! canvas.height displayHeight)
+			(let ((gl (canvas.getContext "experimental-webgl")))
+			  (set! gl.viewportWidth canvas.width)
+			  (set! gl.viewportHeight canvas.height))))
+
+	(set! screen-width canvas.width)
+	(set! screen-height canvas.height)
+	))
 
 (define (size-glcanvas canvas displayWidth displayHeight) 
   ;; Make the canvas the same size
@@ -623,4 +626,5 @@
     (set! gl.viewportHeight canvas.height)))
 
 
+(define webgl-canvas (document.getElementById "webgl-canvas"))
 

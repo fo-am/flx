@@ -31,6 +31,7 @@
 (define canvas-event-occurred #f)
 
 (define webgl-canvas (document.getElementById "webgl-canvas"))
+(define canvas webgl-canvas)
 ;;(define canvas (document.getElementById "canvas"))
 ;;(define ctx (canvas.getContext "2d"))
 
@@ -89,15 +90,15 @@
     (let ((sx (/ rect.width screen-width))
           (sy (/ rect.height screen-height)))
       (let ((nx (/ (- e.clientX rect.left) sx))
-	    (ny (/ (- e.clientY rect.top) sy)))
-	
-	;; deal with dragging
-	(when (and canvas-is-dragging (not canvas-event-occurred))
-	      (set! canvas-drag-x (- nx canvas-mouse-x))
-	      (set! canvas-drag-y (- ny canvas-mouse-y))
-	      (canvas-drag-fn))      
-
-	(set! canvas-event-occurred #f)
+			(ny (/ (- e.clientY rect.top) sy)))
+		
+		;; deal with dragging
+		(when (and canvas-is-dragging (not canvas-event-occurred))
+			  (set! canvas-drag-x (- nx canvas-mouse-x))
+			  (set! canvas-drag-y (- ny canvas-mouse-y))
+			  (canvas-drag-fn))      
+		
+		(set! canvas-event-occurred #f)
 
 	(cond 
 	 ((and (eq? state "move") (eq? canvas-mouse-state "down"))
@@ -107,7 +108,7 @@
 	  ;; ending drag
 	  (set! canvas-is-dragging #f))
 	 (else 0))
-	
+
 	(set! canvas-mouse-x nx)
 	(set! canvas-mouse-y ny)
 

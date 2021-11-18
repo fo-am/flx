@@ -182,7 +182,8 @@
 	(hook (renderer-hook r))
 	(view-camera (mat4.create))
 	(camera-pos (vector 0 0 0)))
-    
+
+	;; set up our global state
     (gl.enable gl.BLEND)
     (gl.blendFunc gl.SRC_ALPHA gl.ONE_MINUS_SRC_ALPHA)
 
@@ -202,9 +203,9 @@
     (let ((ident (mat4.identity (mat4.create))))
       (for-each
        (lambda (p)
-	 (let ((state (car p))
-	       (prim (cadr p)))
-	   (primitive-render prim gl view-camera camera-pos state ident)))
+		 (let ((state (car p))
+			   (prim (cadr p)))
+		   (primitive-render prim gl view-camera camera-pos state ident)))
        (renderer-immediate-prims r))
       
       ;; retained mode
@@ -214,17 +215,6 @@
     (renderer-immediate-clear r))
   
   )
-
-(define (renderer-combine-polyprims gl polyprims)
-  (primitive
-   'polyprim
-   (build-polyprim
-    gl 'triangles
-    (make-pdata 
-     (list "p" "n" "t" "c") ;; assume these match!
-     (foldl (lambda (pp r) (+ r (pdata-size-verts (polyprim-pdata pp)))) 0 polyprims)
-	 (foldl (lambda (pp r) (append r (pdata-interleaved-data (polyprim-pdata pp)))) '() polyprims))
-    )))
 
 (define (assemble-polyprim gl vertices normals texcoords)
   (primitive

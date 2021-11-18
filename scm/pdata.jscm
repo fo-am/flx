@@ -181,15 +181,15 @@
 	
 	(when (not (eq? shader last-shader))
 		  (gl.useProgram shader)
-		  ;;(set! last-shader shader)
-		  )
+		  (set! last-shader shader))
 	
-    ;; set uniforms
-    ;;(apply-uniform-items! gl shader (state-uniform-items state))
+    ;; set uniforms stored with this primitive
+    (apply-uniform-items! gl shader (state-uniform-items state))
     	
 	;; easy optimisation is to check the last vbo
 	;; and if it was the same as this one (eg. when
 	;; instancing) we don't need to upload it (50->60fps bower)
+	;; this is only really helpful when we are rendering instances
 	(if (not (eq? (pdata-vbo pdata) last-vbo))
 		(begin (index-for-each
 				(lambda (index name)
@@ -201,16 +201,14 @@
 				   (* (length (pdata-names pdata)) 12)
 				   (* index 12)))
 				(pdata-names pdata))
-			   ;;(set! last-vbo (pdata-vbo pdata))
-			   )
+			   (set! last-vbo (pdata-vbo pdata)))
 		(set! vbo-saved (+ vbo-saved 1)))
 
 	(if (not (eq? texture last-texture))
 		(begin (if (eq? texture "")
 				   (bind-texture gl shader "white.png")
 				   (bind-texture gl shader texture))
-			   ;;(set! last-texture texture)
-			   )
+			   (set! last-texture texture))
 		(set! tex-saved (+ tex-saved 1)))
 	
     (gl.uniformMatrix4fv shader.ModelViewMatrix false model-view)

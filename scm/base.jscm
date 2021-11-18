@@ -238,6 +238,7 @@
     (if (= n 0) 1
         (* n (factorial (- n 1))))))
 
+;; symbols are strings, for the moment
 
 (define (symbol->string sym)
   sym);; (ditto.symbol_string sym))
@@ -245,6 +246,26 @@
 (define (string->symbol str)
   ;(ditto.find_symbol str)
   str)
+
+;; trying to use javascript objects as quick hashmaps
+
+(define (empty-hashmap)
+  (js "{}"))
+
+(define (hashmap-add h key-value)
+  (js "h[key_value[0]]=key_value[1]")
+  h)
+
+(define (hashmap key-values-list)
+  (foldl
+   (lambda (key-value r)
+	 (hashmap-add r key-value))
+   (empty-hashmap)
+   key-values-list))
+
+(define (hashmap-ref h key)
+  (js "h[key]"))
+
 
 ;; convert code to text form
 ; (define (scheme-txt v)

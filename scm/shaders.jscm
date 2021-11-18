@@ -35,7 +35,7 @@ void main()
     P = p.xyz;
     T = t;
     C = c;
-    L = vec3(vec3(50,150,100)-p); 
+    L = vec3(vec3(50,50,100)-p); 
     N = normalize(vec3(NormalMatrix*vec4(n,1)));	
     gl_Position = ModelViewMatrix * vec4(p,1);
 }")
