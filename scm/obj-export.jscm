@@ -1,0 +1,27 @@
+(define (export-primitive p)
+  (let ((f ""))
+	(with-primitive
+	 p	 
+	 (pdata-map!
+	  (lambda (p)
+		(set! f (+ f "v " (vx p) " " (vy p) " " (vz p) "\n")) p)
+	  "p")
+	 (pdata-map!
+	  (lambda (p)
+		(set! f (+ f "vt " (vx p) " " (vy p) "\n")) p)
+	  "t")
+	 (pdata-map!
+	  (lambda (p)
+		(set! f (+ f "vn " (vx p) " " (vy p) " " (vz p) "\n")) p)
+	  "n")
+
+	 (for-each
+	  (lambda (i)
+		(let ((v (+ 1 (* i 3))))
+		  (set! f (+ f "f "
+					 v "/" v "/" v " "
+					 (+ v 1) "/" (+ v 1) "/" (+ v 1) " "
+					 (+ v 2) "/" (+ v 2)"/"  (+ v 2) "\n"))))
+	  (build-list (/ (pdata-size) 3) (lambda (i) i)))
+
+	 f)))
