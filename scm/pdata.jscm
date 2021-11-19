@@ -213,6 +213,7 @@
 	
     (gl.uniformMatrix4fv shader.ModelViewMatrix false model-view)
     (gl.uniformMatrix4fv shader.NormalMatrix false normal)
+    (gl.uniformMatrix4fv shader.LocalMatrix false local)
 
     (gl.uniform3fv shader.DiffuseColour colour)
     (gl.uniform3fv shader.CameraPos camera-pos)

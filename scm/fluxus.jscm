@@ -587,7 +587,7 @@
 	(when (not external-gl-context) 		
 		  (let ((canvas (document.getElementById "webgl-canvas")))
 			(set! gl.viewportWidth canvas.width)
-			(set! gl.viewportHeight canvas.height)))
+			(set! gl.viewportHeight canvas.height)))	
 	(set! the-renderer (renderer gl))
 	;; set up camera transform
 	(mat4.translate (renderer-camera the-renderer) (list 0 0 0))
