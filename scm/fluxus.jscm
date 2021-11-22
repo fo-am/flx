@@ -514,8 +514,10 @@
 (define stat-period 60)
 (define last-stat 0)
 (define avg-framerate 60)
+(define ready-fn (lambda () 0))
 
-(define (crank)
+(define (fluxus-startup fn)
+  (set! ready-fn fn)
   (outer-render))
 
 (define (debug-renderer)
@@ -526,9 +528,17 @@
 
 (define framerate-divide 1)
 
+(define (ready-to-render?)
+  (and
+   (meshes-loaded?)
+   (textures-loaded?)))
+
 (define (outer-render timestamp)
   (set! t (+ t 1))  
-  (when (zero? (modulo t framerate-divide))
+  (when (and ready-fn (ready-to-render?))
+		(ready-fn)
+		(set! ready-fn #f))
+  (when (and (ready-to-render?) (zero? (modulo t framerate-divide)))
 	(set! the-renderer (renderer-render the-renderer))
 	(set! stat-period (- stat-period 1))            
 	(when (zero? stat-period)
@@ -536,9 +546,9 @@
 	      (set! current-fps (/ (- (Date.now) last-stat) stat-period))
 		  (when (< current-fps 999)
 				(set! avg-framerate (/ (+ avg-framerate current-fps) 2)))
-	      (console.log
-		   (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
-		  	  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
+	      ;;(console.log
+		  ;;(+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
+		  ;;	  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
 	      (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 
