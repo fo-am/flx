@@ -1,0 +1,37 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2021 Then Try This
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;; steal quats from the gl library
+(define rad-conv 0.017453292)
+
+(define (quat x y z w) (quat4.create (list x y z w)))
+
+(define (qaxisangle axis angle)
+  (let ((angle (* angle 0.017453292)))
+    (let ((axis (vmul (vnormalise axis) (sin (/ angle 2)))))
+      (quat (vx axis) (vy axis) (vz axis) (cos (/ angle 2))))))
+
+(define (qaxisanglerad axis angle)
+  (let ((axis (vmul (vnormalise axis) (sin (/ angle 2)))))
+    (quat (vx axis) (vy axis) (vz axis) (cos (/ angle 2)))))
+
+(define (qnormalise q)  (quat4.normalise q))
+(define (qmul a b) (quat4.multiply a b))
+(define (qmulvec q v) (quat4.multiplyVec3 q v))
+(define (q->m q) (quat4.toMat4 q))
+(define (qslerp a b t) 
+  (let ((r (quat 0 0 0 0)))
+    (quat4.slerp a b t r)))

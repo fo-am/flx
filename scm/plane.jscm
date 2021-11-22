@@ -1,0 +1,38 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2021 Then Try This
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (plane a b c d)
+  (list a b c d))
+(define (plane-a p) (list-ref p 0))
+(define (plane-c p) (list-ref p 1))
+(define (plane-d p) (list-ref p 2))
+(define (plane-e p) (list-ref p 3))
+
+(define (plane-point-dist p point)
+  (+ (* (plane-a p) (vx point))
+	 (* (plane-b p) (vy point))
+	 (* (plane-c p) (vz point))
+	 (plane-d p)))
+
+(define (plane-normalise p)
+  (let ((mag (+ (square (plane-a p))
+				(square (plane-b p))
+				(square (plane-c p)))))
+	(plane
+	 (/ (plane-a p) mag)
+	 (/ (plane-b p) mag)
+	 (/ (plane-c p) mag)
+	 (/ (plane-d p) mag))))

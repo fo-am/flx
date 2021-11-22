@@ -450,6 +450,15 @@
 	   (scenenode-primitive (renderer-grab-stack-top the-renderer))))
 	 fn name)))
 
+(define (pdata-fold fn start name)
+  (when (renderer-grabbed? the-renderer)
+	(pdata-internal-fold
+	 ;; todo: check type is polyprim
+	 (polyprim-pdata 
+	  (primitive-inner
+	   (scenenode-primitive (renderer-grab-stack-top the-renderer))))
+	 fn start name)))
+
 (define (pdata-add! name)
   (when (renderer-grabbed? the-renderer)
 	 ;; todo: check type is polyprim
@@ -527,9 +536,9 @@
 	      (set! current-fps (/ (- (Date.now) last-stat) stat-period))
 		  (when (< current-fps 999)
 				(set! avg-framerate (/ (+ avg-framerate current-fps) 2)))
-	      ;;(console.log
-		  ;; (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
-		  ;;	  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
+	      (console.log
+		   (+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
+		  	  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
 	      (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 

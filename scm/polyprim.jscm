@@ -14,18 +14,22 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define (polyprim size type vb)
-  (list size type vb))
+(define (polyprim size type vb bb)
+  (list size type vb bb))
 
 (define (polyprim-size p) (list-ref p 0))
 (define (polyprim-type p) (list-ref p 1))
 (define (polyprim-pdata p) (list-ref p 2))
 (define (polyprim-modify-pdata p v) (list-replace p 2 v))
+(define (polyprim-bb p) (list-ref p 3))
+(define (polyprim-modify-bb p v) (list-replace p 3 v))
 
 (define (build-polyprim gl type pdata)
   (let ((p (polyprim 
-	    (pdata-size-verts pdata) type 
-	    (pdata-build-vbo gl pdata))))
+			(pdata-size-verts pdata) type 
+			(pdata-build-vbo gl pdata)
+			(boundingbox-empty)
+			)))
     (pdata-update-vbo! gl pdata)
     p))
 
@@ -33,12 +37,13 @@
   ;; match load obj for the moment with points, 
   ;; normals and texturecoords 
   (build-polyprim 
-   gl type (make-pdata 
-	    (list "p" "n" "t" "c")
-	    size-verts
-	    (build-list 
-	     (* (* size-verts 4) 3) 
-	     (lambda (i) 0)))))
+   gl type
+   (make-pdata 
+	(list "p" "n" "t" "c")
+	size-verts
+	(build-list 
+	 (* (* size-verts 4) 3) 
+	 (lambda (i) 0)))))
 
 (define (polyprim-combine gl polyprims)
   (build-polyprim

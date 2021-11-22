@@ -83,6 +83,13 @@
 	  (_ mid end)))))))
   (_ 0 (length l)))
 
+(define (scenenode-visible? sn frustum-planes)
+  (foldl
+   (lambda (plane r)
+	 (if (and r (boundingbox-plane-inside? plane (scenenode-bb sn)))
+		 #f r))
+   #t frustum-planes))
+
 (define (scenegraph-find sn id)
   (cond
    ((eq? (scenenode-id sn) id) sn)
@@ -117,7 +124,9 @@
 	(scenegraph-add sn parent-id node))
       (scenenode-children sn))))))
 
-(define (scenegraph-render sn gl view-camera camera-pos tx)
+(define max-depth 0)
+
+(define (scenegraph-render sn gl view-camera camera-pos tx depth)
   (when (not (state-hidden (scenenode-state sn)))
 	(when (not (zero? (scenenode-primitive sn)))
 	      (let ((hints (state-hints (scenenode-state sn))))
@@ -146,7 +155,7 @@
 	  (scenenode-modify-global-tx! sn child-tx)
 	  (for-each 
 	   (lambda (child)
-	     (scenegraph-render child gl view-camera camera-pos child-tx))
+	     (scenegraph-render child gl view-camera camera-pos child-tx (+ depth 1)))
 	   (scenenode-children sn)))))
 
 (define (scenegraph-print sn depth)

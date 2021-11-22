@@ -1,0 +1,67 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2021 Then Try This
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (boundingbox min max)
+  (list min max))
+
+(define (boundingbox-empty)
+  (list #f #f))
+
+(define (boundingbox-min b) (list-ref b 0))
+(define (boundingbox-max b) (list-ref b 1))
+
+(define (boundingbox-is-empty? b)
+  (and (false? (boundingbox-min b))
+	   (false? (boundingbox-max b))))
+
+(define (boundingbox-expand b p)
+  (let ((min (boundingbox-min b))
+		(max (boundingbox-max b)))
+	(boundingbox
+	 (vector (if (< (vx p) (vx min)) (vx p) (vx min)) 
+			 (if (< (vy p) (vy min)) (vy p) (vy min))
+			 (if (< (vz p) (vz min)) (vz p) (vz min)))
+	 (vector (if (> (vx p) (vx max)) (vx p) (vx max)) 
+			 (if (> (vy p) (vy max)) (vy p) (vy max))
+			 (if (> (vz p) (vz max)) (vz p) (vz max))))))
+
+(define (boundingbox->vertices b)
+  (let ((min (boundingbox-min b))
+		(max (boundingbox-max b)))
+	(list min
+		  (vector (vx max) (vy min) (vz min))
+		  (vector (vx min) (vy max) (vz min))
+		  (vector (vx max) (vy max) (vz min))
+		  (vector (vx min) (vy min) (vz max))
+		  (vector (vx max) (vy min) (vz max))
+		  (vector (vx min) (vy max) (vz max))
+		  max)))
+
+(define (boundingbox-point-inside? b p threshold)
+  (and (> (vx p) (- (vx (boundingbox-min b)) threshold))
+	   (< (vx p) (+ (vx (boundingbox-max b)) threshold))
+	   (> (vy p) (- (vy (boundingbox-min b)) threshold))
+	   (< (vy p) (+ (vy (boundingbox-max b)) threshold))
+	   (> (vz p) (- (vz (boundingbox-min b)) threshold))
+	   (< (vz p) (+ (vz (boundingbox-max b)) threshold))))
+
+(define (boundingbox-plane-inside? b p)
+	(foldl
+	 (lambda (v r)
+	   (if (and (not r) (> (plane-point-dist p v) 0))
+		   #t r))
+	 ;; todo - cache em
+	 #f (boundingbox->vertices b)))

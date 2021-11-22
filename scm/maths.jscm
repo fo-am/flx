@@ -14,6 +14,13 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(load "flx/scm/random.jscm")
+(load "flx/scm/vec3.jscm")
+(load "flx/scm/quat.jscm")
+(load "flx/scm/matrix.jscm")
+(load "flx/scm/plane.jscm")
+(load "flx/scm/boundingbox.jscm")
+
 (js "var sin=Math.sin")
 (js "var cos=Math.cos")
 (js "var tan=Math.tan")
@@ -37,144 +44,8 @@
    ((> v max) max)   
    (else v)))
 
-(define (vector x y z) (list x y z))
-
-(define (vx v) (list-ref v 0))
-(define (vy v) (list-ref v 1))
-(define (vz v) (list-ref v 2))
-(define (vw v) (list-ref v 3))
-
-(define (veq? a b) 
-  (and (feq? (vx a) (vx b))
-       (feq? (vy a) (vy b))
-       (feq? (vz a) (vz b))))
-
-(define (vector-clone v)
-  (vector (vx v) (vy v) (vz v)))
-
-(define (vadd a b)
-  (vector (+ (vx a) (vx b))
-          (+ (vy a) (vy b))
-          (+ (vz a) (vz b))))
-
-(define (vmag v)
-  (sqrt (+ (square (vx v))
-           (square (vy v))
-           (square (vz v)))))
-
-(define (vsub a b)
-  (vector (- (vx a) (vx b))
-          (- (vy a) (vy b))
-          (- (vz a) (vz b))))
-
-(define (vneg a)
-  (vector (- 0 (vx a))
-          (- 0 (vy a))
-          (- 0 (vz a))))
-
-(define (vmul v a)
-  (vector (* (vx v) a) (* (vy v) a) (* (vz v) a)))
-
-(define (vdiv v a)
-  (vector (/ (vx v) a) (/ (vy v) a) (/ (vz v) a)))
-
-(define (vdist a b)
-  (vmag (vsub a b)))
-
-(define (vdist-squared a b)
-  (let ((v (vsub a b)))
-    (+ (square (vx v))
-       (square (vy v))
-       (square (vz v)))))
-
-(define (vlerp v1 v2 t)
-	(vadd v1 (vmul (vsub v2 v1) t)))
-
-(define (vnormalise v)
-  (vdiv v (vmag v)))
-
-(define (vdot a b)
-  (+ (* (vx a) (vx b)) 
-     (* (vy a) (vy b))
-     (* (vz a) (vz b))))
-
-(define (vcross a b)
-  (vector (- (* (vy a) (vz b)) (* (vz a) (vy b)))
-	  (- (* (vz a) (vx b)) (* (vx a) (vz b)))
-	  (- (* (vx a) (vy b)) (* (vy a) (vx b)))))
-
-(define (rndvec) (vector (rndf) (rndf) (rndf)))
-(define (crndvec) (vsub (rndvec) (vector 0.5 0.5 0.5)))
-(define (crndf) (- (rndf) 0.5))
-
-(define (hcrndvec s)
-  (let ((a (* (rndf) 360)))
-    (vector (* s (sin a)) (* s (cos a)) 0)))
-
-;; steal quats from the gl library
-(define rad-conv 0.017453292)
-
-(define (quat x y z w) (quat4.create (list x y z w)))
-
-(define (qaxisangle axis angle)
-  (let ((angle (* angle 0.017453292)))
-    (let ((axis (vmul (vnormalise axis) (sin (/ angle 2)))))
-      (quat (vx axis) (vy axis) (vz axis) (cos (/ angle 2))))))
-
-(define (qaxisanglerad axis angle)
-  (let ((axis (vmul (vnormalise axis) (sin (/ angle 2)))))
-    (quat (vx axis) (vy axis) (vz axis) (cos (/ angle 2)))))
-
-(define (qnormalise q)  (quat4.normalise q))
-(define (qmul a b) (quat4.multiply a b))
-(define (qmulvec q v) (quat4.multiplyVec3 q v))
-(define (q->m q) (quat4.toMat4 q))
-(define (qslerp a b t) 
-  (let ((r (quat 0 0 0 0)))
-    (quat4.slerp a b t r)))
-
-;; note - operations (and above) destructive but faster - todo: fix
-
-(define (midentity) (mat4.identity (mat4.create)))
-(define (minverse m) (mat4.inverse m))
-(define (mmul a b) (mat4.multiply a b))
-;; mmul mangles b
-(define (mmul-ret a b) (mat4.multiply a b (mat4.create)))
-(define (mtransform m v) (mat4.multiplyVec3 m v))
-(define (mtransform-norm m v) (mat4.multiplyVec3Norm m v))
-(define (mtranslate m v) (mat4.translate m v))
-(define (mscale m v) (mat4.scale m v))
-(define (mrotate m axis angle) (mat4.rotate m angle axis))
 
 
-(define (maim2 m v up)
-  (let ((l (vector 0 0 0))
-	(u (vector 0 0 0))
-        (aim-matrix (mat4.create)))
-    (vec3.cross v up l)
-    (vec3.cross v l u)
-
-    (js "aim_matrix[0]=vx(v);")
-    (js "aim_matrix[1]=vy(v);")
-    (js "aim_matrix[2]=vz(v);")
-    (js "aim_matrix[3]=0;")
-
-    (js "aim_matrix[4]=vx(l);")
-    (js "aim_matrix[5]=vy(l);")
-    (js "aim_matrix[6]=vz(l);")
-    (js "aim_matrix[7]=0;")
-
-    (js "aim_matrix[8]=vx(u);")
-    (js "aim_matrix[9]=vy(u);")
-    (js "aim_matrix[10]=vz(u);")
-    (js "aim_matrix[11]=0;")
-
-    (js "aim_matrix[12]=0;")
-    (js "aim_matrix[13]=0;")
-    (js "aim_matrix[14]=0;")
-    (js "aim_matrix[15]=1;")
-
-    (mat4.multiply m aim-matrix)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

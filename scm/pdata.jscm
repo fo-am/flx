@@ -104,6 +104,12 @@
   (js "};")
   interleaved)
 
+(define (stride-fold fn v interleaved stride offset)
+  (js "for (var stride_fold_i=offset; stride_fold_i<interleaved.length; stride_fold_i+=stride) {")
+  (js "v=fn([interleaved[stride_fold_i],interleaved[stride_fold_i+1],interleaved[stride_fold_i+2]],v);")
+  (js "};")
+  v)
+
 (define (pdata-offset v name)
   (define (_ names r)
     (cond
@@ -134,6 +140,12 @@
       ;; might want to do this separately as it's potentially slow
       (pdata-update-vbo! gl v))))
 
+;; calculate a value from the pdata
+(define (pdata-internal-fold v fn start name)
+  (let ((offset (pdata-offset v name)))  
+    (let ((stride (* (length (pdata-names v)) 3))) 
+	  (stride-fold fn start (pdata-interleaved-data v) stride offset))))
+
 (define (pdata-internal-set! gl pdata name pos value)
   (let ((offset (pdata-offset pdata name)))  
     (let ((stride (* (length (pdata-names pdata)) 3)))
@@ -155,6 +167,13 @@
        (js "pdata_interleaved_data(pdata)[offset+pos*stride]")
        (js "pdata_interleaved_data(pdata)[offset+pos*stride+1]")
        (js "pdata_interleaved_data(pdata)[offset+pos*stride+2]")))))
+
+(define (pdata->boundingbox pdata tx)
+  (pdata-internal-fold
+   pdata
+   (lambda (p bb)
+	 (boundingbox-expand bb (mtransform tx p)))
+   (boundingbox-empty) "p"))
 
 ;; stick em out here to avoid allocation all the time
 (define model-view (mat4.create))

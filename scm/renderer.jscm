@@ -209,7 +209,7 @@
        (renderer-immediate-prims r))
       
       ;; retained mode
-      (scenegraph-render (renderer-scenegraph r) gl view-camera camera-pos ident))
+      (scenegraph-render (renderer-scenegraph r) gl view-camera camera-pos ident 0))
 	;;(msg (list vbo-saved tex-saved))
 	
     (renderer-immediate-clear r))

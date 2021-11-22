@@ -1,0 +1,60 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2021 Then Try This
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;; note - operations (and above) destructive but faster - todo: fix
+
+(define (midentity) (mat4.identity (mat4.create)))
+(define (minverse m) (mat4.inverse m))
+(define (mmul a b) (mat4.multiply a b))
+;; mmul mangles b
+(define (mmul-ret a b) (mat4.multiply a b (mat4.create)))
+(define (mtransform m v) (mat4.multiplyVec3 m v))
+(define (mtransform-norm m v) (mat4.multiplyVec3Norm m v))
+(define (mtranslate m v) (mat4.translate m v))
+(define (mscale m v) (mat4.scale m v))
+(define (mrotate m axis angle) (mat4.rotate m angle axis))
+
+
+(define (maim2 m v up)
+  (let ((l (vector 0 0 0))
+	(u (vector 0 0 0))
+        (aim-matrix (mat4.create)))
+    (vec3.cross v up l)
+    (vec3.cross v l u)
+
+    (js "aim_matrix[0]=vx(v);")
+    (js "aim_matrix[1]=vy(v);")
+    (js "aim_matrix[2]=vz(v);")
+    (js "aim_matrix[3]=0;")
+
+    (js "aim_matrix[4]=vx(l);")
+    (js "aim_matrix[5]=vy(l);")
+    (js "aim_matrix[6]=vz(l);")
+    (js "aim_matrix[7]=0;")
+
+    (js "aim_matrix[8]=vx(u);")
+    (js "aim_matrix[9]=vy(u);")
+    (js "aim_matrix[10]=vz(u);")
+    (js "aim_matrix[11]=0;")
+
+    (js "aim_matrix[12]=0;")
+    (js "aim_matrix[13]=0;")
+    (js "aim_matrix[14]=0;")
+    (js "aim_matrix[15]=1;")
+
+    (mat4.multiply m aim-matrix)))
+
+
