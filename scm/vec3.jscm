@@ -79,3 +79,7 @@
   (vector (- (* (vy a) (vz b)) (* (vz a) (vy b)))
 	  (- (* (vz a) (vx b)) (* (vx a) (vz b)))
 	  (- (* (vx a) (vy b)) (* (vy a) (vx b)))))
+
+(define (vcross-triple a b c)
+  (vcross c (vcross a b)))
+  

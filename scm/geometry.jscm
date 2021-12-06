@@ -45,6 +45,45 @@
    (/ (vy point) (vdist c a))
    (/ (vz point) (vdist a b))))
 
+(define (fold-triangles fn ret)
+  (let ((faces (quotient (pdata-size) 3)))
+	(js "for (let face=0; face<faces; face++) {")
+	(set! ret (fn (* face 3) ret))
+	(js "}")
+	ret))
+
+(define (calculate-face-tangents)
+  (fold-triangles
+   (lambda (i ret)
+	 (let ((p0 (pdata-ref "p" i))
+		   (p1 (pdata-ref "p" (+ i 1)))
+		   (p2 (pdata-ref "p" (+ i 2)))
+		   (t0 (pdata-ref "t" i))
+		   (t1 (pdata-ref "t" (+ i 1)))
+		   (t2 (pdata-ref "t" (+ i 2))))		   
+	   (let ((edge1 (vsub p1 p0))
+			 (edge2 (vsub p2 p0))
+			 (uv1 (vsub t1 t0))
+			 (uv2 (vsub t2 t0)))				 
+		 (let ((r (/ 1 (- (* (vx uv1) (vy uv2)) (* (vy uv1) (vx uv2))))))
+		   (append ret
+				   (list
+					(vector
+					 (* (- (* (vx edge1) (vy uv2)) (* (vx edge2) (vy uv1))) r)
+					 (* (- (* (vy edge1) (vy uv2)) (* (vy edge2) (vy uv1))) r)
+					 (* (- (* (vz edge1) (vy uv2)) (* (vz edge2) (vy uv1))) r)))
+				   )))))
+   '()))
+
+(define (calculate-vertex-tangents pdata-name)
+  (let ((face-tangents (calculate-face-tangents)))
+	(pdata-index-map!
+	 (lambda (i t0)
+	   (let ((n (pdata-ref "n" i))
+			 (t0 (list-ref face-tangents (quotient i 3))))
+		 (vnormalise (vsub t0 (vmul n (vdot n t0))))))
+	 pdata-name)))
+  
 (define (geometry-unit-test)
   (assert (point2-in-triangle? (vector 0.5 0.5 0) (vector 0 0 0) (vector 3 0 0) (vector 0 3 0)) "point in triangle 1")
   (assert (not 
