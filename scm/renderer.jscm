@@ -164,7 +164,8 @@
 
 (define (renderer-render r)
   (let ((gl (renderer-gl r)))
-	(renderer-clear r)    
+    (renderer-clear r)
+    (renderer-run-hook r)
     (renderer-render-outer
      r 0 0 gl.viewportWidth gl.viewportHeight
      (renderer-calc-frustum gl r)
@@ -176,6 +177,10 @@
     (renderer-modify-view r projection)
     (renderer-modify-camera r camera)
     (renderer-render-inner r)))
+
+(define (renderer-run-hook r)
+  (let ((hook (renderer-hook r)))
+    (when hook (js "try{") (hook) (js "} catch(e) { ") (display e) (js "}"))))
 
 (define (renderer-render-inner r)
   (let ((gl (renderer-gl r))
@@ -194,7 +199,6 @@
 
     (mat4.identity (renderer-top-tx r))
 
-    (when hook (js "try{") (hook) (js "} catch(e) { ") (display e) (js "}"))
 
 	(set! vbo-saved 0)
 	(set! tex-saved 0)
