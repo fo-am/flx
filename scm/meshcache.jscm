@@ -57,7 +57,7 @@
     (cond 
      (mesh (deep-copy (cadr mesh)));; deep copy!?
      (else 
-      (msg (+ "loading mesh: " name))
+      ;;(msg (+ "loading mesh: " name))
       (let ((type (substring name (- (length name) 3) (length name))))
 	(if (eq? type "obj")
 	    (force-load-obj name)

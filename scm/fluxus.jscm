@@ -210,6 +210,8 @@
               (build-shader (renderer-gl the-renderer) 
 			    (list "p" "n" "t" "c") vert frag))))))
 
+;; use this version for defining custon attributes
+;; all vec3 at the moment...
 (define (shader-attrib-names names vert frag)
   (set! the-renderer 
 	(renderer-modify-current-state
@@ -468,6 +470,24 @@
 	   (renderer-gl the-renderer) 
 	   (polyprim-pdata pp)
 	   name))))
+
+(define (pdata-exists? name)
+  (if (renderer-grabbed? the-renderer)
+	  ;; todo: check type is polyprim
+	  (let ((pp (primitive-inner
+				 (scenenode-primitive (renderer-grab-stack-top the-renderer)))))
+		(pdata-offset (polyprim-pdata pp) name))
+	  #f))
+
+(define (pdata-copy! from to)
+  (msg "pc")
+  (when (not (pdata-exists? to))
+		(pdata-add! from))
+  ;; probably a quicker way...
+  (pdata-index-map!
+   (lambda (i o)
+	 (pdata-ref from i))
+   to))
 
 (define (pdata-size)
   (when (renderer-grabbed? the-renderer)

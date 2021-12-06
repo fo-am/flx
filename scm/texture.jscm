@@ -55,7 +55,7 @@
 				 (set! textures (cons (list name texture) textures))
 				 ;;(console.log (+ "processed " name))
 				 )))
-        (console.log (+ "loading " name))
+        ;;(console.log (+ "loading " name))
         name)))
 
 (define (bind-texture gl shader name)

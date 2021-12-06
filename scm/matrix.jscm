@@ -17,7 +17,7 @@
 ;; note - operations (and above) destructive but faster - todo: fix
 
 (define (midentity) (mat4.identity (mat4.create)))
-(define (minverse m) (mat4.inverse m))
+(define (minverse m) (mat4.inverse m (mat4.create)))
 (define (mmul a b) (mat4.multiply a b))
 ;; mmul mangles b
 (define (mmul-ret a b) (mat4.multiply a b (mat4.create)))

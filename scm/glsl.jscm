@@ -64,7 +64,6 @@
       
       (index-for-each
        (lambda (index attrib-name)
-		 (msg attrib-name)
 		 (gl.bindAttribLocation shader-program index attrib-name))
        attrib-names)
       
