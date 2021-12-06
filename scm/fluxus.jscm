@@ -553,23 +553,39 @@
    (meshes-loaded?)
    (textures-loaded?)))
 
+(define (percent-loaded?)
+  (let ((assets-loaded (+ (- meshes-total-load meshes-load-outstanding)
+						  (- textures-total-load textures-load-outstanding)))
+		(total-assets (+ meshes-total-load textures-total-load)))
+	(* 100 (/ assets-loaded total-assets))))
+
+(define (do-load-update)
+  (cond
+   ((ready-to-render?)
+	(when ready-fn
+		  (ready-fn)
+		  (let ((p (document.getElementById "loading-container")))
+			(set! p.style.display "none")))
+	(set! ready-fn #f))
+   (else
+	(let ((p (document.getElementById "loading")))
+	  (set! p.value (percent-loaded?))))))
+
 (define (outer-render timestamp)
   (set! t (+ t 1))  
-  (when (and ready-fn (ready-to-render?))
-		(ready-fn)
-		(set! ready-fn #f))
+  (do-load-update)
   (when (and (ready-to-render?) (zero? (modulo t framerate-divide)))
-	(set! the-renderer (renderer-render the-renderer))
-	(set! stat-period (- stat-period 1))            
-	(when (zero? stat-period)
-	      (set! stat-period 60)
-	      (set! current-fps (/ (- (Date.now) last-stat) stat-period))
-		  (when (< current-fps 999)
-				(set! avg-framerate (/ (+ avg-framerate current-fps) 2)))
-	      ;;(console.log
-		  ;;(+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
-		  ;;	  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
-	      (set! last-stat (Date.now))))
+		(set! the-renderer (renderer-render the-renderer))
+		(set! stat-period (- stat-period 1))            
+		(when (zero? stat-period)
+			  (set! stat-period 60)
+			  (set! current-fps (/ (- (Date.now) last-stat) stat-period))
+			  (when (< current-fps 999)
+					(set! avg-framerate (/ (+ avg-framerate current-fps) 2)))
+			  ;;(console.log
+			  ;;(+ "FPS: " (trunc (/ 1 (/ current-fps 1000)))
+			  ;;	  " AVG: " (trunc (/ 1 (/ avg-framerate 1000)))))
+			  (set! last-stat (Date.now))))
   (window.requestAnimationFrame outer-render))
 
 (define (print-renderer-top)
