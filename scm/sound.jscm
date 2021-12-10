@@ -1,0 +1,144 @@
+;; -*- mode: scheme; -*-
+;; Marvellous Mongooses Copyright (C) 2021 Then Try This
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define sound-lib ())
+;;(define max-sound-channels 1)
+
+(define (load-sounds! l)
+  (for-each
+   (lambda (s)
+	 (let ((fn (car s))
+		   (ch (cadr s)))
+	   (msg (list "loading" fn))
+	   (set! sound-lib
+			 (cons (list fn 0
+						 (build-list ch (lambda (_) (new Audio (string-append "sounds/" fn)))))
+				   sound-lib))))
+   l))
+
+(define (sound-fn s) (list-ref s 0))
+(define (sound-next-channel s) (list-ref s 1))
+(define (sound-sounds s) (list-ref s 2))
+
+(define (inc-sound s)
+  (list-replace s 1 (modulo (+ 1 (sound-next-channel s))
+							(length (sound-sounds s)))))
+
+(define (inner-inc-sound fn l)
+  (map
+   (lambda (s)
+     (if (eq? (car s) fn)
+	 (inc-sound s) s))
+   l))
+
+(define (find-sound fn)
+  (set! sound-lib (inner-inc-sound fn sound-lib))
+  (foldl
+   (lambda (i r)
+     (if (and (not r) (eq? (sound-fn i) fn))
+	 i r))
+   #f
+   sound-lib))
+
+(define (game-mute g) #t)
+
+(define (play-sound sound)
+  (when (game-mute game)
+		(let ((snd (find-sound sound)))
+		  (if snd
+			  (let ((s (list-ref (sound-sounds snd)
+								 (sound-next-channel snd))))
+				(s.play))
+			  (msg (+ "no sound: " sound))))))
+
+(define (play-sound-looped sound)
+  (when (game-mute game) 
+        (let ((snd (find-sound sound)))
+		  (let ((s (list-ref (sound-sounds snd)
+							 (sound-next-channel snd))))
+			(if (eq? (js "typeof s.loop") "boolean")
+				(set! s.loop #t)
+				(s.addEventListener
+				 "ended" (lambda ()
+						   (set! s.currentTime 0)
+						   (s.play)) #f))
+			(set! s.volume 1)
+			(s.play)))))
+  
+(define (stop-sound sound)
+  (when (game-mute game)
+        (let ((snd (find-sound sound)))
+          (snd.pause))))
+
+;;---------------------------------------------------
+
+(define (sound-layer sound volume duration repeat t)
+  (list sound volume duration repeat t))
+(define (sound-layer-sound l) (list-ref l 0))
+(define (sound-layer-volume l) (list-ref l 1))
+(define (sound-layer-duration l) (list-ref l 2))
+(define (sound-layer-repeat l) (list-ref l 3))
+(define (sound-layer-t l) (list-ref l 4))
+(define (sound-layer-modify-t l v) (list-replace l 4 v))
+
+(define (init-sound-layer sound volume duration repeat) 
+  (play-sound-looped sound)
+  (sound-layer
+   (find-sound sound)
+   volume
+   duration
+   repeat
+   0))
+
+(define (sound-layers-stop! layers)
+  (for-each
+   (lambda (layer)
+	 (let ((snd (sound-layer-sound layer)))
+	   (for-each
+		(lambda (s)
+		  (set! s.loop #f))
+		(sound-sounds snd))))
+   layers))
+  
+(define (sound-layers-update layers delta)  
+  (foldl
+   (lambda (layer r)
+	 (let ((snd (sound-layer-sound layer)))
+	   (let ((s (list-ref (sound-sounds snd)
+						  (sound-next-channel snd))))
+		 (cond
+		  ((> (sound-layer-t layer) (sound-layer-duration layer))
+		   (cond
+			((> (sound-layer-repeat layer) 0)
+			 (if (> (sound-layer-t layer) (sound-layer-repeat layer))
+				 (cons (sound-layer-modify-t layer 0) r)
+				 (cons (sound-layer-modify-t
+						layer (+ (sound-layer-t layer) delta)) r)))
+			(else
+			 (set! s.loop #f)		  
+			 r)))
+		  (else
+		   ;; update the volume using a curve
+		   (set! s.volume
+				 (* (sound-layer-volume layer)
+					(sin (* (/ (sound-layer-t layer)
+							   (sound-layer-duration layer))
+							pi))))
+		   (cons
+			(sound-layer-modify-t layer (+ (sound-layer-t layer) delta))
+			r))))))
+   '()
+   layers))

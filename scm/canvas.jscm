@@ -159,49 +159,6 @@
      (load-image! fn finished l))
    l))
 
-(define sound-lib ())
-
-(define (load-sounds! l)
-  (for-each
-   (lambda (fn)
-     (set! sound-lib
-           (cons (list fn (new Audio (string-append "sounds/" fn)))
-                 sound-lib)))
-   l))
-
-(define (inner_find-sound fn l)
-  (cond
-   ((null? l) #f)
-   ((eq? (car (car l)) fn) (cadr (car l)))
-   (else (inner_find-sound fn (cdr l)))))
-
-(define (find-sound fn)
-  (inner_find-sound fn sound-lib))
-
-(define game-mute #f)
-
-(define (play-sound sound)
-  (when (not game-mute) 
-        (let ((snd (find-sound sound)))
-          (snd.play))))
-
-(define (play-sound-looped sound)
-  (when (not game-mute)
-        (let ((snd (find-sound sound)))
-          (if (eq? (js "typeof snd.loop") "boolean")
-              (set! snd.loop true)
-              (snd.addEventListener
-               "ended" (lambda ()
-                         (set! snd.currentTime 0)
-                         (snd.play)) #f))
-          (snd.play))))
-
-(define (stop-sound sound)
-  (when (game-mute game)
-        (let ((snd (find-sound sound)))
-          (snd.pause))))
-
-
 (define (mousedown-handler e) (mouse-from-event canvas e "down"))
 (define (touchstart-handler e) (touch-from-event canvas e "down"))
 (define (mousemove-handler e) (mouse-from-event canvas e "move"))
