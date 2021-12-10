@@ -291,6 +291,11 @@
 			  (scenegraph-find (renderer-scenegraph the-renderer) id)))
 		   polyprim-id-list))))))
 
+(define (get-parent)
+  (if (renderer-grabbed? the-renderer)
+	  (state-parent (renderer-stack-top the-renderer)) ;; parent from state 
+	  -1))
+
 (define (get-children)
   (if (renderer-grabbed? the-renderer)
 	  (map
@@ -298,6 +303,9 @@
 		 (scenenode-id p))
 	   (scenenode-children (renderer-grab-stack-top the-renderer)))
 	  '()))
+
+(define (print-scenegraph)  
+  (scenegraph-print (renderer-scenegraph the-renderer) 0))
 
 (define (apply-transform!)
   (let ((tx (get-transform)))
@@ -382,6 +390,8 @@
            the-renderer
            (lambda (state)
              (state-modify-parent state id)))))
+
+
 
 (define (hide v)
   (set! the-renderer (renderer-modify-current-state
@@ -534,7 +544,7 @@
 (define stat-period 60)
 (define last-stat 0)
 (define avg-framerate 60)
-(define ready-fn (lambda () 0))
+(define ready-fn (lambda (percent) 0))
 
 (define (fluxus-startup fn)
   (set! ready-fn fn)
@@ -553,7 +563,7 @@
    (meshes-loaded?)
    (textures-loaded?)))
 
-(define (percent-loaded?)
+(define (percent-loaded)
   (let ((assets-loaded (+ (- meshes-total-load meshes-load-outstanding)
 						  (- textures-total-load textures-load-outstanding)))
 		(total-assets (+ meshes-total-load textures-total-load)))
@@ -562,19 +572,15 @@
 (define (do-load-update)
   (cond
    ((ready-to-render?)
-	(when ready-fn
-		  (ready-fn)
-		  (let ((p (document.getElementById "loading-container")))
-			(set! p.style.display "none")))
-	(set! ready-fn #f))
+	(when ready-fn (ready-fn 100)
+		  (set! ready-fn #f)))
    (else
-	(let ((p (document.getElementById "loading")))
-	  (set! p.value (percent-loaded?))))))
+	(ready-fn (percent-loaded)))))
 
 (define (outer-render timestamp)
   (set! t (+ t 1))  
   (do-load-update)
-  (when (and (ready-to-render?) (zero? (modulo t framerate-divide)))
+  (when (zero? (modulo t framerate-divide))
 		(set! the-renderer (renderer-render the-renderer))
 		(set! stat-period (- stat-period 1))            
 		(when (zero? stat-period)

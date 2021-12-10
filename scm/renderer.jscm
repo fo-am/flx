@@ -199,9 +199,11 @@
 
     (mat4.identity (renderer-top-tx r))
 
-
 	(set! vbo-saved 0)
 	(set! tex-saved 0)
+	(set! last-vbo #f)
+	(set! last-texture #f)
+	(set! last-shader #f)
 
     ;; immediate mode
     (let ((ident (mat4.identity (mat4.create))))

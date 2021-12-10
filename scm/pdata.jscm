@@ -196,7 +196,6 @@
     (mat4.multiply tx (state-tx state) local)
     (mat4.multiply view-camera local model-view)
     (mat4.toRotationMat local normal)
-
 	
 	(when (not (eq? shader last-shader))
 		  (gl.useProgram shader)
