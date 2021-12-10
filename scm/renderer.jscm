@@ -182,6 +182,23 @@
   (let ((hook (renderer-hook r)))
     (when hook (js "try{") (hook) (js "} catch(e) { ") (display e) (js "}"))))
 
+(define ready-fn (lambda (percent) 0))
+
+(define (percent-loaded)
+  (let ((assets-loaded (+ (- meshes-total-load meshes-load-outstanding)
+						  (- textures-total-load textures-load-outstanding)))
+		(total-assets (+ meshes-total-load textures-total-load)))
+	(* 100 (/ assets-loaded total-assets))))
+
+(define (do-load-update)
+  (when ready-fn
+    (cond
+     ((ready-to-render?)
+      (ready-fn 100)
+      (set! ready-fn #f))
+     (else
+      (ready-fn (percent-loaded))))))
+
 (define (renderer-render-inner r)
   (let ((gl (renderer-gl r))
 	(hook (renderer-hook r))

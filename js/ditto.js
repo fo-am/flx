@@ -675,10 +675,10 @@ function load_resource_txt(url, loadedfn) {
 	}
     } else {
 	var xmlHttp = new XMLHttpRequest();
-	xmlHttp.addEventListener("load", function() {
+	xmlHttp.open("GET", url, true);
+	xmlHttp.onload = function() {
 	    loadedfn(xmlHttp.responseText);
-	});
-	xmlHttp.open("GET", url);
+	};
 	xmlHttp.overrideMimeType("script");
 	xmlHttp.send(null);
     }
@@ -777,38 +777,35 @@ function shuffle(array) {
 
 
 function ditto_init(filenames) {
-    jQuery(document).ready(function($) {
+    // load and compile the syntax parser
+    var syntax_parse=ditto.load_unparsed("flx/scm/syntax.jscm");
+    try {
+        //console.log(syntax_parse);
+        do_syntax=eval(syntax_parse);
+    } catch (e) {
+        console.log("An error occured parsing (syntax) of "+syntax_parse);
+        console.log(e);
+        console.log(e.stack);
+    }
 
-        // load and compile the syntax parser
-        var syntax_parse=ditto.load_unparsed("flx/scm/syntax.jscm");
-        try {
-            //console.log(syntax_parse);
-            do_syntax=eval(syntax_parse);
-        } catch (e) {
-            console.log("An error occured parsing (syntax) of "+syntax_parse);
-            console.log(e);
-            console.log(e.stack);
-        }
+    var js=ditto.load("flx/scm/base.jscm");
 
-        var js=ditto.load("flx/scm/base.jscm");
-
-        filenames.forEach(function(filename) {
-            //console.log("loading "+filename);
-            js+=ditto.load(filename);
-        });
-
-        try {
-            //eval(js);
-            setTimeout(js,0);
-	    //console.log(js);
-        } catch (e) {
-	    //console.log(js);
-            console.log(e);
-            console.log(e.stack);
-            ditto.to_page("output", "Error: "+e);	
-            ditto.to_page("output", "Error: "+e.stack);	
-        }
+    filenames.forEach(function(filename) {
+        //console.log("loading "+filename);
+        js+=ditto.load(filename);
     });
+
+    try {
+        //eval(js);
+        setTimeout(js,0);
+	//console.log(js);
+    } catch (e) {
+	//console.log(js);
+        console.log(e);
+        console.log(e.stack);
+        ditto.to_page("output", "Error: "+e);	
+        ditto.to_page("output", "Error: "+e.stack);	
+    }
 };
 
 function init_static(syntax,source) {
