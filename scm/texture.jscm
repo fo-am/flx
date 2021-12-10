@@ -61,7 +61,10 @@
 (define (bind-texture gl shader name)
   (let ((texture (get-texture name)))
     ;; may not have loaded yet
-    (when texture
-          (gl.activeTexture gl.TEXTURE0)
-          (gl.bindTexture gl.TEXTURE_2D texture)
-          (gl.uniform1i shader.texture 0))))
+    (cond
+	 (texture
+	  (gl.activeTexture gl.TEXTURE0)
+	  (gl.bindTexture gl.TEXTURE_2D texture)
+	  (gl.uniform1i shader.texture 0)
+	  #t)
+	 (else #f))))

@@ -22,7 +22,6 @@
    (lambda (s)
 	 (let ((fn (car s))
 		   (ch (cadr s)))
-	   (msg (list "loading" fn))
 	   (set! sound-lib
 			 (cons (list fn 0
 						 (build-list ch (lambda (_) (new Audio (string-append "sounds/" fn)))))
