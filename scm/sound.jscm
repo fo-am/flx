@@ -82,6 +82,40 @@
         (let ((snd (find-sound sound)))
           (snd.pause))))
 
+;; only works for single channel sounds
+(define (sound-playing? sound)
+  (let ((snd (find-sound sound)))
+	(let ((s (list-ref (sound-sounds snd)
+					   (sound-next-channel snd))))
+	  (not s.paused))))
+
+;;---------------------------------------------------
+
+(define (sound-queue q) (list q))
+
+(define (sound-queue-sounds q) (list-ref q 0))
+(define (sound-queue-modify-sounds q v) (list-replace q 0 v))
+
+(define (sound-queue-play q sound)
+  (cond
+   ((list-contains? (sound-queue-sounds q) sound) q)
+   (else
+	(when (null? (sound-queue-sounds q)) (play-sound sound))
+	(sound-queue-modify-sounds
+	 q (append (sound-queue-sounds q) (list sound))))))
+
+(define (sound-queue-update q)
+  (cond
+   ((null? (sound-queue-sounds q)) q)
+   ((not (sound-playing? (car (sound-queue-sounds q))))
+	(cond
+	 ((null? (cdr (sound-queue-sounds q)))
+	  (sound-queue-modify-sounds q '()))
+	 (else
+	  (play-sound (cadr (sound-queue-sounds q)))
+	  (sound-queue-modify-sounds q (cdr (sound-queue-sounds q))))))
+   (else q)))
+
 ;;---------------------------------------------------
 
 (define (sound-layer sound volume duration repeat t)

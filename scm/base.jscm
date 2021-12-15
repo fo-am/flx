@@ -266,6 +266,9 @@
 (define (hashmap-ref h key)
   (js "h[key]"))
 
+(define (hashmap-set! h key v)
+  (js "h[key]=v"))
+
 
 ;; convert code to text form
 ; (define (scheme-txt v)
