@@ -104,6 +104,31 @@
 	(sound-queue-modify-sounds
 	 q (append (sound-queue-sounds q) (list sound))))))
 
+(define (sound-queue-contains-any-of? q sounds)
+  (define (_ l)
+	(cond
+	 ((null? l) #f)
+	 ((list-contains? (sound-queue-sounds q) (car l)) #t)
+	 (else (_ (cdr l)))))
+  (_ sounds))
+
+;; clears all except currently playing one
+(define (sound-queue-clear q)
+  (sound-queue
+   (if (null? (sound-queue-sounds q))
+	   '()
+	   (list (car (sound-queue-sounds q))))))
+  
+;; don't bother checking if they are in the list
+(define (sound-queue-play-list q sounds)
+  (cond
+   ((sound-queue-contains-any-of? q sounds) q)
+   (else
+	(when (null? (sound-queue-sounds q)) (play-sound (car sounds)))
+	(let ((new-queue (sound-queue-clear q)))
+	  (sound-queue-modify-sounds
+	   new-queue (append (sound-queue-sounds new-queue) sounds))))))
+
 (define (sound-queue-update q)
   (cond
    ((null? (sound-queue-sounds q)) q)
